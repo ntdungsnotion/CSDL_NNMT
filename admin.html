@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quản trị – Sở Nông nghiệp và Môi trường</title>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{
+  --xd:#1b4332;--xc:#2d6a4f;--xn:#52b788;--xp:#d8f3dc;
+  --w:#fff;--g1:#f4f6f5;--g2:#e4e9e6;--g3:#c5d0c9;--g4:#7a9485;--g5:#3d5247;--dk:#1a2e22;
+  --red:#c0392b;--yellow:#d97706;--blue:#1e40af;
+  --sw:210px;--font:'Be Vietnam Pro',sans-serif;--mono:'JetBrains Mono',monospace;--r:7px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font);font-size:14px;color:var(--dk);background:var(--g1);height:100vh;overflow:hidden}
+#app{display:flex;height:100vh}
+.sb{width:var(--sw);background:var(--xd);display:flex;flex-direction:column;flex-shrink:0}
+.sb-head{padding:14px 12px;border-bottom:1px solid rgba(255,255,255,.08)}
+.sb-logo{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.sb-logo .i{font-size:20px}
+.sb-logo .t{font-size:11px;font-weight:700;color:white;line-height:1.35}
+.sb-user{background:rgba(255,255,255,.07);border-radius:var(--r);padding:8px 10px}
+.sb-user .n{font-size:12px;font-weight:700;color:white}
+.sb-user .r{font-size:10px;color:rgba(255,255,255,.5);margin-top:1px}
+.sb-nav{flex:1;overflow-y:auto;padding:10px 8px}
+.nlbl{font-size:10px;font-weight:700;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.8px;padding:8px 8px 3px}
+.ni{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;
+  cursor:pointer;color:rgba(255,255,255,.65);font-size:12px;font-weight:500;transition:.15s;margin-bottom:1px}
+.ni:hover{background:rgba(255,255,255,.08);color:white}
+.ni.act{background:linear-gradient(135deg,var(--xc),#40916c);color:white}
+.ni .i{font-size:14px;width:17px;text-align:center}
+.sb-foot{padding:8px;border-top:1px solid rgba(255,255,255,.07)}
+.sb-btn{width:100%;padding:7px;background:rgba(255,255,255,.06);border:none;border-radius:6px;
+  color:rgba(255,255,255,.6);font-family:var(--font);font-size:11px;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;gap:5px;transition:.15s;margin-bottom:5px}
+.sb-btn:hover{background:rgba(255,255,255,.12);color:white}
+
+.main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{height:50px;background:white;border-bottom:1px solid var(--g2);
+  display:flex;align-items:center;padding:0 18px;flex-shrink:0;box-shadow:0 1px 4px rgba(0,0,0,.07)}
+.topbar-t{font-size:14px;font-weight:700;color:var(--xd)}
+.content{flex:1;overflow:auto;padding:16px}
+.content::-webkit-scrollbar{width:6px}
+.content::-webkit-scrollbar-thumb{background:var(--g3);border-radius:3px}
+
+/* CARDS */
+.card{background:white;border-radius:var(--r);box-shadow:0 1px 4px rgba(0,0,0,.08);overflow:hidden;margin-bottom:16px}
+.card-head{padding:12px 16px;border-bottom:1px solid var(--g2);display:flex;align-items:center;justify-content:space-between}
+.card-head h3{font-size:14px;font-weight:700;color:var(--xd)}
+.card-body{padding:0}
+
+/* TABLE */
+table.dt{width:100%;border-collapse:collapse;font-size:13px}
+table.dt th{background:var(--g1);padding:8px 14px;text-align:left;font-size:11px;font-weight:700;
+  color:var(--g5);text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--g2)}
+table.dt td{padding:9px 14px;border-bottom:1px solid var(--g2)}
+table.dt tr:last-child td{border-bottom:none}
+table.dt tr:hover td{background:#f7faf8}
+
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600}
+.badge.green{background:#d1fae5;color:#065f46}
+.badge.red{background:#fee2e2;color:#991b1b}
+.badge.blue{background:#dbeafe;color:var(--blue)}
+.badge.gray{background:var(--g2);color:var(--g5)}
+
+.btn{padding:6px 13px;border:none;border-radius:6px;font-family:var(--font);font-size:12px;
+  font-weight:600;cursor:pointer;transition:.15s}
+.btn.primary{background:var(--xc);color:white}
+.btn.primary:hover{opacity:.85}
+.btn.danger{background:#fee2e2;color:var(--red)}
+.btn.danger:hover{background:#fecaca}
+.btn.ghost{background:var(--g2);color:var(--g5)}
+.btn.ghost:hover{background:var(--g3)}
+
+/* FORM */
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;padding:14px 16px}
+.fg{display:flex;flex-direction:column;gap:4px}
+.fg label{font-size:11px;font-weight:700;color:var(--g5);text-transform:uppercase;letter-spacing:.3px}
+.fg input,.fg select{padding:8px 10px;border:1.5px solid var(--g2);border-radius:var(--r);
+  font-family:var(--font);font-size:13px;outline:none;transition:.2s;color:var(--dk)}
+.fg input:focus,.fg select:focus{border-color:var(--xc);box-shadow:0 0 0 3px rgba(45,106,79,.1)}
+.form-actions{padding:12px 16px;border-top:1px solid var(--g2);display:flex;gap:8px}
+
+/* SWITCH */
+.sw-wrap{display:flex;align-items:center;gap:6px}
+.sw{position:relative;width:36px;height:20px;cursor:pointer}
+.sw input{opacity:0;width:0;height:0}
+.sw-slider{position:absolute;inset:0;background:var(--g3);border-radius:20px;transition:.2s}
+.sw input:checked+.sw-slider{background:var(--xn)}
+.sw-slider::before{content:'';position:absolute;width:14px;height:14px;left:3px;top:3px;
+  background:white;border-radius:50%;transition:.2s}
+.sw input:checked+.sw-slider::before{transform:translateX(16px)}
+.sw-lbl{font-size:12px;color:var(--g5)}
+
+/* UTILS */
+.err-txt{color:var(--red);font-size:12px;min-height:16px}
+.mono{font-family:var(--mono);font-size:12px}
+.loading{display:flex;align-items:center;justify-content:center;gap:8px;padding:32px;color:var(--g4);font-size:13px}
+.spin{width:16px;height:16px;border:2px solid var(--g2);border-top-color:var(--xc);border-radius:50%;animation:sp .6s linear infinite;display:inline-block}
+@keyframes sp{to{transform:rotate(360deg)}}
+.empty{display:flex;flex-direction:column;align-items:center;padding:40px;color:var(--g4);gap:8px;font-size:13px}
+.empty .i{font-size:30px}
+.toast{position:fixed;top:58px;right:14px;padding:10px 15px;border-radius:var(--r);font-size:13px;
+  color:white;box-shadow:0 2px 10px rgba(0,0,0,.15);transform:translateX(110%);transition:.3s;z-index:200}
+.toast.on{transform:translateX(0)}
+.toast.ok{background:#1b5e20}
+.toast.er{background:var(--red)}
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;align-items:center;justify-content:center}
+.modal-bg.on{display:flex}
+.mbox{background:white;border-radius:14px;padding:24px;min-width:300px;max-width:440px;box-shadow:0 8px 28px rgba(0,0,0,.2)}
+.mbox h3{color:var(--xd);margin-bottom:5px}
+.mbox p{font-size:12px;color:var(--g4);margin-bottom:14px}
+.mbox .row{display:flex;flex-direction:column;gap:10px;margin-bottom:14px}
+.mbox .btns{display:flex;gap:8px}
+
+/* CHỈ ĐỔI MẬT KHẨU (user) */
+#page-doipass{max-width:400px;margin:0 auto;padding-top:20px}
+</style>
+</head>
+<body>
+<div id="app">
+  <aside class="sb">
+    <div class="sb-head">
+      <div class="sb-logo">
+        <span class="i">⚙️</span>
+        <div class="t">Quản trị hệ thống<br><span style="opacity:.55;font-weight:400">Sở NN và MT</span></div>
+      </div>
+      <div class="sb-user">
+        <div class="n" id="sb-name">Đang tải...</div>
+        <div class="r" id="sb-role"></div>
+      </div>
+    </div>
+    <nav class="sb-nav" id="sb-nav"></nav>
+    <div class="sb-foot">
+      <button class="sb-btn" onclick="window.close()">✕ Đóng trang này</button>
+    </div>
+  </aside>
+  <main class="main">
+    <div class="topbar"><div class="topbar-t" id="topbar-t">Quản trị hệ thống</div></div>
+    <div class="content" id="content">
+      <div class="loading"><span class="spin"></span> Đang tải...</div>
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- Modal xác nhận -->
+<div class="modal-bg" id="modal-xn">
+  <div class="mbox">
+    <h3 id="xn-title">Xác nhận</h3>
+    <p id="xn-msg"></p>
+    <div class="btns">
+      <button class="btn danger" id="xn-ok">Xác nhận</button>
+      <button class="btn ghost" onclick="dongModal('modal-xn')">Huỷ</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal thêm/sửa kỳ -->
+<div class="modal-bg" id="modal-ky">
+  <div class="mbox" style="width:480px">
+    <h3 id="ky-title">Thêm kỳ báo cáo</h3>
+    <p>Kỳ mới mặc định: mở nhập liệu + hiển thị trên biểu.</p>
+    <div class="row">
+      <div class="fg"><label>Mã kỳ</label><input id="ky-ma" placeholder="Uoc_03/2026" class="mono"></div>
+      <div class="fg"><label>Tên kỳ</label><input id="ky-ten" placeholder="Ước tháng 3 năm 2026"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="fg"><label>Tháng</label><input id="ky-thang" type="number" min="1" max="12" placeholder="3"></div>
+        <div class="fg"><label>Năm</label><input id="ky-nam" type="number" placeholder="2026"></div>
+      </div>
+      <div class="fg"><label>Loại số liệu</label>
+        <select id="ky-loai"><option>Ước thực hiện</option><option>Chính thức</option></select></div>
+      <div class="fg"><label>Nguồn số liệu</label><input id="ky-nguon" placeholder="Dữ liệu ngành"></div>
+    </div>
+    <div class="btns">
+      <button class="btn primary" onclick="luuKy()">Lưu kỳ</button>
+      <button class="btn ghost" onclick="dongModal('modal-ky')">Huỷ</button>
+    </div>
+    <div class="err-txt" id="err-ky" style="margin-top:8px"></div>
+  </div>
+</div>
+
+<!-- Modal thêm/sửa tài khoản -->
+<div class="modal-bg" id="modal-tk">
+  <div class="mbox" style="width:420px">
+    <h3 id="tk-title">Thêm tài khoản</h3>
+    <p>Mật khẩu mặc định: <strong>snnmt</strong></p>
+    <div class="row">
+      <div class="fg"><label>Tên đơn vị / phòng ban</label><input id="tk-donvi" placeholder="Chi cục Thủy sản"></div>
+      <div class="fg"><label>Họ tên người phụ trách</label><input id="tk-hoten" placeholder="Nguyễn Văn A"></div>
+      <div class="fg"><label>Email (tuỳ chọn)</label><input id="tk-email" type="email" placeholder="a@sonmt.gov.vn"></div>
+      <div class="fg"><label>Vai trò</label>
+        <select id="tk-vaitro"><option value="editor">Người nhập liệu (Editor)</option><option value="admin">Quản trị viên (Admin)</option></select></div>
+    </div>
+    <div class="btns">
+      <button class="btn primary" onclick="luuTK()">Lưu tài khoản</button>
+      <button class="btn ghost" onclick="dongModal('modal-tk')">Huỷ</button>
+    </div>
+    <div class="err-txt" id="err-tk" style="margin-top:8px"></div>
+  </div>
+</div>
+
+<!-- Modal phân quyền -->
+<div class="modal-bg" id="modal-pq">
+  <div class="mbox" style="width:380px">
+    <h3 id="pq-title">Phân quyền bảng</h3>
+    <p id="pq-sub"></p>
+    <div id="pq-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px"></div>
+    <div class="btns">
+      <button class="btn primary" onclick="luuPQ()">Lưu phân quyền</button>
+      <button class="btn ghost" onclick="dongModal('modal-pq')">Đóng</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const SB_URL='https://tztigowjdbfzalcsyoqj.supabase.co';
+const SB_KEY='sb_publishable_jarPut6H_Di8m8M7HNiCpQ_EDBTLXOk';
+const sb=supabase.createClient(SB_URL,SB_KEY);
+
+let user=null, dsKy=[], dsTK=[], dsBang=[], editKyId=null, editTKId=null, pqTKId=null;
+
+// ── KHỞI ĐỘNG ──
+window.addEventListener('load',async()=>{
+  const sv=localStorage.getItem('u');
+  if(!sv){alert('Vui lòng đăng nhập từ trang chính!');window.close();return}
+  user=JSON.parse(sv);
+  document.getElementById('sb-name').textContent=user.don_vi;
+  document.getElementById('sb-role').textContent=user.vai_tro==='admin'?'⚙️ Quản trị viên':'✏️ Người nhập liệu';
+
+  if(user.vai_tro==='admin'){
+    buildMenuAdmin();
+    await Promise.all([loadKy(),loadTK(),loadBang()]);
+    hienKyBaoCao();
+  } else {
+    buildMenuUser();
+    hienDoiPass();
+  }
+});
+
+function buildMenuAdmin(){
+  document.getElementById('sb-nav').innerHTML=`
+    <div class="nlbl">Quản lý</div>
+    <div class="ni act" id="ni-ky" onclick="hienKyBaoCao()"><span class="i">📅</span> Kỳ báo cáo</div>
+    <div class="ni" id="ni-tk" onclick="hienTaiKhoan()"><span class="i">👤</span> Tài khoản</div>
+    <div class="ni" id="ni-pq" onclick="hienPhanQuyen()"><span class="i">🔑</span> Phân quyền</div>
+    <div class="ni" id="ni-ct" onclick="hienChiTieu()"><span class="i">📑</span> Chỉ tiêu</div>
+    <div class="ni" id="ni-tdb" onclick="hienTieuDeBang()"><span class="i">🏷️</span> Tiêu đề bảng</div>
+    <div class="nlbl">Tài khoản</div>
+    <div class="ni" onclick="hienDoiPass()"><span class="i">🔐</span> Đổi mật khẩu</div>`;
+}
+function buildMenuUser(){
+  document.getElementById('sb-nav').innerHTML=`
+    <div class="nlbl">Tài khoản</div>
+    <div class="ni act" onclick="hienDoiPass()"><span class="i">🔐</span> Đổi mật khẩu</div>`;
+}
+function setAct(id){document.querySelectorAll('.ni').forEach(e=>e.classList.remove('act'));document.getElementById(id)?.classList.add('act')}
+
+// ── DATA LOAD ──
+async function loadKy(){const {data}=await sb.from('ky_bao_cao').select('*').order('nam_bao_cao',{ascending:false}).order('thang_bao_cao',{ascending:false});dsKy=data||[]}
+async function loadTK(){const {data}=await sb.from('tai_khoan').select('*').order('vai_tro').order('don_vi');dsTK=data||[]}
+async function loadBang(){const {data}=await sb.from('danh_sach_bang').select('*').order('thu_tu');dsBang=data||[]}
+
+// ── KỲ BÁO CÁO ──
+async function hienKyBaoCao(){
+  setAct('ni-ky');
+  document.getElementById('topbar-t').textContent='Quản lý kỳ báo cáo';
+  await loadKy();
+  document.getElementById('content').innerHTML=`
+    <div class="card">
+      <div class="card-head">
+        <h3>📅 Danh sách kỳ báo cáo</h3>
+        <button class="btn primary" onclick="moModalKy()">+ Thêm kỳ mới</button>
+      </div>
+      <div class="card-body">
+        <table class="dt">
+          <thead><tr>
+            <th style="width:60px;text-align:center">Thứ tự</th>
+            <th>Mã kỳ</th><th>Tên kỳ</th><th>Tháng/Năm</th><th>Loại</th>
+            <th style="text-align:center">Mở nhập liệu</th>
+            <th style="text-align:center">Hiện trên biểu</th>
+            <th></th>
+          </tr></thead>
+          <tbody>${dsKy.map(k=>`<tr>
+            <td style="text-align:center;padding:4px">
+              <input type="number" min="1" style="width:50px;padding:4px;border:1.5px solid var(--g2);border-radius:5px;text-align:center;font-family:var(--mono);font-size:12px"
+                value="${k.thu_tu_hien_thi||''}" placeholder="--"
+                onchange="capNhatThuTuKy('${k.ky_bao_cao}',this.value)">
+            </td>
+            <td class="mono">${k.ky_bao_cao}</td>
+            <td>${k.ky_bao_cao_tieu_de}</td>
+            <td style="text-align:center">T${k.thang_bao_cao}/${k.nam_bao_cao}</td>
+            <td><span class="badge ${k.loai_so_lieu==='Chính thức'?'green':'blue'}">${k.loai_so_lieu||'--'}</span></td>
+            <td style="text-align:center">
+              <label class="sw-wrap">
+                <label class="sw"><input type="checkbox" ${!k.khoa_nhap_lieu?'checked':''}
+                  onchange="toggleKy('${k.ky_bao_cao}','khoa_nhap_lieu',!this.checked)">
+                  <span class="sw-slider"></span></label>
+                <span class="sw-lbl">${!k.khoa_nhap_lieu?'🔓 Mở':'🔒 Khoá'}</span>
+              </label>
+            </td>
+            <td style="text-align:center">
+              <label class="sw-wrap">
+                <label class="sw"><input type="checkbox" ${k.dua_vao_bieu_bao_cao?'checked':''}
+                  onchange="toggleKy('${k.ky_bao_cao}','dua_vao_bieu_bao_cao',this.checked)">
+                  <span class="sw-slider"></span></label>
+                <span class="sw-lbl">${k.dua_vao_bieu_bao_cao?'✅ Hiện':'⬜ Ẩn'}</span>
+              </label>
+            </td>
+            <td><button class="btn ghost" onclick="xoaKy('${k.ky_bao_cao}')">🗑</button></td>
+          </tr>`).join('')}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+function moModalKy(ky=null){
+  editKyId=ky?.ky_bao_cao||null;
+  document.getElementById('ky-title').textContent=ky?'Sửa kỳ báo cáo':'Thêm kỳ báo cáo';
+  document.getElementById('ky-ma').value=ky?.ky_bao_cao||'';
+  document.getElementById('ky-ma').disabled=!!ky;
+  document.getElementById('ky-ten').value=ky?.ky_bao_cao_tieu_de||'';
+  document.getElementById('ky-thang').value=ky?.thang_bao_cao||'';
+  document.getElementById('ky-nam').value=ky?.nam_bao_cao||new Date().getFullYear();
+  document.getElementById('ky-loai').value=ky?.loai_so_lieu||'Ước thực hiện';
+  document.getElementById('ky-nguon').value=ky?.nguon_so_lieu||'';
+  document.getElementById('err-ky').textContent='';
+  bat('modal-ky');
+}
+async function luuKy(){
+  const ma=document.getElementById('ky-ma').value.trim();
+  const ten=document.getElementById('ky-ten').value.trim();
+  const thang=parseInt(document.getElementById('ky-thang').value);
+  const nam=parseInt(document.getElementById('ky-nam').value);
+  const loai=document.getElementById('ky-loai').value;
+  const nguon=document.getElementById('ky-nguon').value.trim();
+  const err=document.getElementById('err-ky');err.textContent='';
+  if(!ma||!ten||!thang||!nam){err.textContent='Vui lòng điền đủ thông tin!';return}
+  const row={ky_bao_cao:ma,ky_bao_cao_tieu_de:ten,thang_bao_cao:thang,nam_bao_cao:nam,
+    loai_so_lieu:loai,nguon_so_lieu:nguon,khoa_nhap_lieu:false,dua_vao_bieu_bao_cao:true};
+  const {error}=editKyId
+    ?await sb.from('ky_bao_cao').update(row).eq('ky_bao_cao',editKyId)
+    :await sb.from('ky_bao_cao').insert(row);
+  if(error){err.textContent='Lỗi: '+error.message;return}
+  dongModal('modal-ky');toast('✅ Đã lưu kỳ báo cáo!');
+  hienKyBaoCao();
+}
+async function toggleKy(ma,col,val){
+  const u={};u[col]=val;
+  const {error}=await sb.from('ky_bao_cao').update(u).eq('ky_bao_cao',ma);
+  if(error){toast('Lỗi: '+error.message,'er');return}
+  toast('✅ Đã cập nhật!');
+  await loadKy();setTimeout(hienKyBaoCao,400);
+}
+async function capNhatThuTuKy(ma, val){
+  const v = val===''?null:parseInt(val);
+  const {error}=await sb.from(CONFIG.BANG.KY_BAO_CAO).update({thu_tu_hien_thi:v}).eq('ky_bao_cao',ma);
+  if(error){toast('Lỗi: '+error.message,'er');return}
+  toast('✅ Đã cập nhật thứ tự!');
+}
+
+function xoaKy(ma){
+  xacNhan('Xoá kỳ báo cáo',`Xoá kỳ "<strong>${ma}</strong>"? Dữ liệu đã nhập sẽ không bị mất.`,
+    async()=>{const {error}=await sb.from('ky_bao_cao').delete().eq('ky_bao_cao',ma);
+    if(error){toast('Lỗi: '+error.message,'er');return}toast('✅ Đã xoá!');hienKyBaoCao()});
+}
+
+// ── TÀI KHOẢN ──
+async function hienTaiKhoan(){
+  setAct('ni-tk');
+  document.getElementById('topbar-t').textContent='Quản lý tài khoản';
+  await loadTK();
+  document.getElementById('content').innerHTML=`
+    <div class="card">
+      <div class="card-head">
+        <h3>👤 Danh sách tài khoản</h3>
+        <button class="btn primary" onclick="moModalTK()">+ Thêm tài khoản</button>
+      </div>
+      <div class="card-body">
+        <table class="dt">
+          <thead><tr>
+            <th>Đơn vị</th><th>Người phụ trách</th><th>Email</th>
+            <th style="text-align:center">Vai trò</th>
+            <th style="text-align:center">Trạng thái</th>
+            <th style="text-align:center">Mật khẩu</th>
+            <th></th>
+          </tr></thead>
+          <tbody>${dsTK.map(r=>`<tr>
+            <td><strong>${r.don_vi}</strong></td>
+            <td>${r.ho_ten}</td>
+            <td class="mono" style="font-size:11px">${r.email||'--'}</td>
+            <td style="text-align:center"><span class="badge ${r.vai_tro==='admin'?'blue':'green'}">${r.vai_tro==='admin'?'⚙️ Admin':'✏️ Editor'}</span></td>
+            <td style="text-align:center">
+              <label class="sw-wrap">
+                <label class="sw"><input type="checkbox" ${r.trang_thai?'checked':''}
+                  onchange="toggleTK(${r.id},'trang_thai',this.checked)">
+                  <span class="sw-slider"></span></label>
+                <span class="sw-lbl">${r.trang_thai?'Hoạt động':'Khoá'}</span>
+              </label>
+            </td>
+            <td style="text-align:center">
+              <span class="badge ${!r.mat_khau||r.mat_khau==='snnmt'?'gray':'green'}">
+                ${!r.mat_khau||r.mat_khau==='snnmt'?'🔑 Mặc định':'✅ Đã đổi'}</span>
+              ${r.id!==user.id?`<button class="btn ghost" style="margin-left:4px;padding:3px 8px;font-size:11px"
+                onclick="resetPass(${r.id},'${r.don_vi}')">Reset</button>`:''}
+            </td>
+            <td><button class="btn ghost" onclick="moModalTK(${r.id})" style="margin-right:4px">✏️</button>
+              ${r.id!==user.id?`<button class="btn danger" onclick="xoaTK(${r.id},'${r.don_vi}')">🗑</button>`:''}
+            </td>
+          </tr>`).join('')}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+function moModalTK(id=null){
+  editTKId=id;
+  const r=id?dsTK.find(r=>r.id===id):null;
+  document.getElementById('tk-title').textContent=r?'Sửa tài khoản':'Thêm tài khoản';
+  document.getElementById('tk-donvi').value=r?.don_vi||'';
+  document.getElementById('tk-hoten').value=r?.ho_ten||'';
+  document.getElementById('tk-email').value=r?.email||'';
+  document.getElementById('tk-vaitro').value=r?.vai_tro||'editor';
+  document.getElementById('err-tk').textContent='';
+  bat('modal-tk');
+}
+async function luuTK(){
+  const dv=document.getElementById('tk-donvi').value.trim();
+  const ht=document.getElementById('tk-hoten').value.trim();
+  const em=document.getElementById('tk-email').value.trim();
+  const vt=document.getElementById('tk-vaitro').value;
+  const err=document.getElementById('err-tk');err.textContent='';
+  if(!dv||!ht){err.textContent='Vui lòng điền đơn vị và họ tên!';return}
+  const row={don_vi:dv,ho_ten:ht,email:em||null,vai_tro:vt};
+  const {error}=editTKId
+    ?await sb.from('tai_khoan').update(row).eq('id',editTKId)
+    :await sb.from('tai_khoan').insert({...row,mat_khau:'snnmt',trang_thai:true});
+  if(error){err.textContent='Lỗi: '+error.message;return}
+  dongModal('modal-tk');toast('✅ Đã lưu tài khoản!');hienTaiKhoan();
+}
+async function toggleTK(id,col,val){
+  const u={};u[col]=val;
+  await sb.from('tai_khoan').update(u).eq('id',id);
+  toast('✅ Đã cập nhật!');await loadTK();setTimeout(hienTaiKhoan,400);
+}
+function resetPass(id,don_vi){
+  xacNhan('Reset mật khẩu',`Reset mật khẩu của <strong>${don_vi}</strong> về mặc định <strong>snnmt</strong>?`,
+    async()=>{await sb.from('tai_khoan').update({mat_khau:'snnmt'}).eq('id',id);toast('✅ Đã reset mật khẩu!');hienTaiKhoan()});
+}
+function xoaTK(id,don_vi){
+  xacNhan('Xoá tài khoản',`Xoá tài khoản <strong>${don_vi}</strong>? Thao tác không thể hoàn tác.`,
+    async()=>{await sb.from('tai_khoan').delete().eq('id',id);toast('✅ Đã xoá!');hienTaiKhoan()});
+}
+
+// ── PHÂN QUYỀN ──
+async function hienPhanQuyen(){
+  setAct('ni-pq');
+  document.getElementById('topbar-t').textContent='Phân quyền nhập liệu';
+  await Promise.all([loadTK(),loadBang()]);
+  const editors=dsTK.filter(r=>r.vai_tro==='editor');
+  const {data:pqAll}=await sb.from('phan_quyen_bang').select('*');
+
+  document.getElementById('content').innerHTML=`
+    <div class="card">
+      <div class="card-head"><h3>🔑 Phân quyền bảng nhập liệu</h3></div>
+      <div class="card-body">
+        <table class="dt">
+          <thead><tr><th>Đơn vị</th><th>Người phụ trách</th><th>Bảng được nhập</th><th></th></tr></thead>
+          <tbody>${editors.map(r=>{
+            const pq=(pqAll||[]).filter(p=>p.tai_khoan_id===r.id).map(p=>p.bang);
+            const tenBangs=pq.map(mb=>dsBang.find(b=>b.bang===mb)?.ten_bang||mb);
+            return`<tr>
+              <td><strong>${r.don_vi}</strong></td>
+              <td>${r.ho_ten}</td>
+              <td>${tenBangs.length?tenBangs.map(t=>`<span class="badge green" style="margin:2px">${t}</span>`).join(''):'<span style="color:var(--g4);font-size:12px">Chưa phân công</span>'}</td>
+              <td><button class="btn ghost" onclick="moModalPQ(${r.id},'${r.don_vi}')">✏️ Sửa</button></td>
+            </tr>`;
+          }).join('')}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+async function moModalPQ(id,donVi){
+  pqTKId=id;
+  document.getElementById('pq-title').textContent='Phân quyền: '+donVi;
+  document.getElementById('pq-sub').textContent='Chọn bảng mà đơn vị này được phép nhập liệu:';
+  const {data:pq}=await sb.from('phan_quyen_bang').select('bang').eq('tai_khoan_id',id);
+  const daPhan=(pq||[]).map(r=>r.bang);
+  document.getElementById('pq-list').innerHTML=dsBang.map(b=>`
+    <label style="display:flex;align-items:center;gap:8px;cursor:pointer;padding:6px 0;border-bottom:1px solid var(--g2)">
+      <input type="checkbox" id="pq-${b.bang}" ${daPhan.includes(b.bang)?'checked':''}
+        style="width:15px;height:15px;accent-color:var(--xc)">
+      <span><strong>${b.ten_bang}</strong> <span style="font-size:11px;color:var(--g4)">${b.don_vi_bao_cao||''}</span></span>
+    </label>`).join('');
+  bat('modal-pq');
+}
+async function luuPQ(){
+  const checked=dsBang.filter(b=>document.getElementById('pq-'+b.bang)?.checked).map(b=>b.bang);
+  await sb.from('phan_quyen_bang').delete().eq('tai_khoan_id',pqTKId);
+  if(checked.length){
+    await sb.from('phan_quyen_bang').insert(checked.map(mb=>({tai_khoan_id:pqTKId,bang:mb})));
+  }
+  dongModal('modal-pq');toast('✅ Đã lưu phân quyền!');hienPhanQuyen();
+}
+
+// ── CHỈ TIÊU — QUẢN LÝ CHO_PHEP_NHAP ──
+async function hienChiTieu(){
+  setAct('ni-ct');
+  document.getElementById('topbar-t').textContent='Danh mục chỉ tiêu';
+  await loadBang();
+
+  // Tạo selector chọn bảng
+  document.getElementById('content').innerHTML=`
+    <div class="card" style="margin-bottom:12px">
+      <div class="card-head">
+        <h3>📑 Quản lý chỉ tiêu</h3>
+        <div style="display:flex;align-items:center;gap:8px">
+          <label style="font-size:12px;color:var(--g5)">Chọn bảng:</label>
+          <select id="sel-bang-ct" onchange="taiChiTieu(this.value)"
+            style="padding:6px 10px;border:1.5px solid var(--g2);border-radius:var(--r);font-family:var(--font);font-size:13px">
+            ${dsBang.map(b=>`<option value="${b.bang}">${b.ten_bang}</option>`).join('')}
+          </select>
+        </div>
+      </div>
+    </div>
+    <div id="ct-content"><div class="loading"><span class="spin"></span> Đang tải...</div></div>`;
+
+  if(dsBang.length) taiChiTieu(dsBang[0].bang);
+}
+
+async function taiChiTieu(maBang){
+  const el=document.getElementById('ct-content');
+  el.innerHTML='<div class="loading"><span class="spin"></span> Đang tải...</div>';
+  const {data:ct,error}=await sb.from('chi_tieu')
+    .select('id,chi_tieu,don_vi,la_tieu_de,cho_phep_nhap,thu_tu')
+    .eq('bang',maBang).order('thu_tu');
+  if(error){el.innerHTML=`<div class="empty"><span class="i">⚠️</span><span>Lỗi: ${error.message}</span></div>`;return}
+  const b=dsBang.find(x=>x.bang===maBang);
+
+  el.innerHTML=`
+    <div class="card">
+      <div class="card-head">
+        <h3>${b?.ten_bang} <span style="font-size:11px;font-weight:400;color:var(--g4)">(${ct.length} chỉ tiêu)</span></h3>
+        <div style="display:flex;gap:8px">
+          <button class="btn ghost" onclick="batTatTatCa('${maBang}',true)">✅ Mở tất cả</button>
+          <button class="btn ghost" onclick="batTatTatCa('${maBang}',false)">🔒 Khóa tất cả</button>
+        </div>
+      </div>
+      <div class="card-body">
+        <table class="dt">
+          <thead><tr>
+            <th style="width:70px">Mã</th>
+            <th>Tên chỉ tiêu</th>
+            <th style="width:70px">ĐVT</th>
+            <th style="width:120px;text-align:center">Cho phép nhập</th>
+          </tr></thead>
+          <tbody>${ct.map(c=>`<tr style="${c.la_tieu_de?'background:var(--xp);font-weight:700':''}${c.cho_phep_nhap===false?';opacity:.6':''}">
+            <td class="mono" style="font-size:11px">${c.id}</td>
+            <td style="padding-left:${((c.chi_tieu.match(/^\s+/)?.[0]?.length||0)*3)+10}px">${c.chi_tieu.trim()}</td>
+            <td style="text-align:center;font-size:12px">${c.don_vi||''}</td>
+            <td style="text-align:center">
+              ${c.la_tieu_de
+                ? '<span style="color:var(--g4);font-size:11px">Tiêu đề</span>'
+                : `<label class="sw-wrap" style="justify-content:center">
+                    <label class="sw">
+                      <input type="checkbox" ${c.cho_phep_nhap!==false?'checked':''}
+                        onchange="toggleChiTieu('${c.id}',this.checked)">
+                      <span class="sw-slider"></span>
+                    </label>
+                    <span class="sw-lbl">${c.cho_phep_nhap!==false?'🔓 Mở':'🔒 Khóa'}</span>
+                  </label>`
+              }
+            </td>
+          </tr>`).join('')}</tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+async function toggleChiTieu(id, val){
+  const {error}=await sb.from('chi_tieu').update({cho_phep_nhap:val}).eq('id',id);
+  if(error){toast('Lỗi: '+error.message,'er');return}
+  toast(val?'🔓 Đã mở dòng':'🔒 Đã khóa dòng');
+}
+
+async function batTatTatCa(maBang, val){
+  // Chỉ cập nhật dòng không phải tiêu đề
+  const {error}=await sb.from('chi_tieu')
+    .update({cho_phep_nhap:val})
+    .eq('bang',maBang).eq('la_tieu_de',false);
+  if(error){toast('Lỗi: '+error.message,'er');return}
+  toast(val?'✅ Đã mở tất cả dòng':'🔒 Đã khóa tất cả dòng');
+  taiChiTieu(maBang);
+}
+
+// ── TIÊU ĐỀ BẢNG ──
+async function hienTieuDeBang(){
+  setAct('ni-tdb');
+  document.getElementById('topbar-t').textContent='Tiêu đề bảng báo cáo';
+  await loadBang();
+  document.getElementById('content').innerHTML=`
+    <div class="card">
+      <div class="card-head"><h3>🏷️ Tiêu đề các bảng báo cáo</h3></div>
+      <div class="card-body" style="padding:16px">
+        <p style="font-size:12px;color:var(--g4);margin-bottom:16px">
+          Dòng 1: Tiêu đề chính (in đậm, viết hoa trên biểu nhập liệu)<br>
+          Dòng 2: Tiêu đề phụ (thường là số công văn đính kèm)
+        </p>
+        ${dsBang.map(b=>`
+          <div style="border:1.5px solid var(--g2);border-radius:var(--r);padding:14px;margin-bottom:12px">
+            <div style="font-size:13px;font-weight:700;color:var(--xd);margin-bottom:10px">📋 ${b.ten_bang}</div>
+            <div style="display:grid;grid-template-columns:1fr;gap:8px">
+              <div class="fg">
+                <label class="lbl">Tiêu đề chính (dòng 1)</label>
+                <input id="td1-${b.bang}" class="inp" type="text"
+                  value="${b.tieu_de_chinh||b.ten_bang||''}"
+                  placeholder="VD: BẢNG THỦY SẢN">
+              </div>
+              <div class="fg">
+                <label class="lbl">Tiêu đề phụ (dòng 2)</label>
+                <input id="td2-${b.bang}" class="inp" type="text"
+                  value="${b.tieu_de_phu||''}"
+                  placeholder="VD: (Đính kèm Công văn số … của …)">
+              </div>
+              <div>
+                <button class="btn primary" onclick="luuTieuDe('${b.bang}')">💾 Lưu</button>
+              </div>
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+}
+
+async function luuTieuDe(maBang){
+  const td1=document.getElementById('td1-'+maBang)?.value.trim()||'';
+  const td2=document.getElementById('td2-'+maBang)?.value.trim()||'';
+  const {error}=await sb.from('danh_sach_bang')
+    .update({tieu_de_chinh:td1,tieu_de_phu:td2}).eq('bang',maBang);
+  if(error){toast('Lỗi: '+error.message,'er');return}
+  toast('✅ Đã lưu tiêu đề bảng!');
+}
+
+// ── ĐỔI MẬT KHẨU ──
+function hienDoiPass(){
+  document.getElementById('topbar-t').textContent='Đổi mật khẩu';
+  document.getElementById('content').innerHTML=`
+    <div id="page-doipass">
+      <div class="card">
+        <div class="card-head"><h3>🔐 Đổi mật khẩu</h3></div>
+        <div class="form-grid" style="grid-template-columns:1fr">
+          <div class="fg"><label>Đơn vị</label>
+            <input class="inp" value="${user.don_vi}" disabled style="background:var(--g1)"></div>
+          <div class="fg"><label>Mật khẩu hiện tại</label>
+            <input class="inp" type="password" id="dp-cu" placeholder="••••••••"></div>
+          <div class="fg"><label>Mật khẩu mới (tối thiểu 4 ký tự)</label>
+            <input class="inp" type="password" id="dp-moi" placeholder="••••••••"></div>
+          <div class="fg"><label>Nhập lại mật khẩu mới</label>
+            <input class="inp" type="password" id="dp-moi2" placeholder="••••••••"></div>
+        </div>
+        <div class="form-actions">
+          <button class="btn primary" onclick="luuPassAdmin()">Lưu mật khẩu</button>
+        </div>
+        <div class="err-txt" id="err-dp" style="padding:0 16px 12px"></div>
+      </div>
+    </div>`;
+}
+async function luuPassAdmin(){
+  const cu=document.getElementById('dp-cu').value;
+  const moi=document.getElementById('dp-moi').value;
+  const moi2=document.getElementById('dp-moi2').value;
+  const err=document.getElementById('err-dp');err.textContent='';
+  if(cu!==(user.mat_khau||'snnmt')){err.textContent='Mật khẩu hiện tại không đúng.';return}
+  if(moi.length<4){err.textContent='Mật khẩu mới phải có ít nhất 4 ký tự.';return}
+  if(moi!==moi2){err.textContent='Mật khẩu nhập lại không khớp.';return}
+  if(moi==='snnmt'){err.textContent='Không được dùng lại mật khẩu mặc định.';return}
+  const {error}=await sb.from('tai_khoan').update({mat_khau:moi}).eq('id',user.id);
+  if(error){err.textContent='Lỗi: '+error.message;return}
+  user.mat_khau=moi;localStorage.setItem('u',JSON.stringify(user));
+  err.style.color='var(--xc)';err.textContent='✅ Đổi mật khẩu thành công!';
+  ['dp-cu','dp-moi','dp-moi2'].forEach(id=>document.getElementById(id).value='');
+}
+
+// ── UTILS ──
+function bat(id){document.getElementById(id)?.classList.add('on')}
+function tat(id){document.getElementById(id)?.classList.remove('on')}
+function dongModal(id){document.getElementById(id).classList.remove('on')}
+let _t;
+function toast(msg,tp='ok'){
+  const el=document.getElementById('toast');el.textContent=msg;el.className=`toast on ${tp}`;
+  clearTimeout(_t);_t=setTimeout(()=>el.classList.remove('on'),3200);
+}
+function xacNhan(title,msg,cb){
+  document.getElementById('xn-title').textContent=title;
+  document.getElementById('xn-msg').innerHTML=msg;
+  document.getElementById('xn-ok').onclick=()=>{dongModal('modal-xn');cb()};
+  bat('modal-xn');
+}
+</script>
+</body>
+</html>
