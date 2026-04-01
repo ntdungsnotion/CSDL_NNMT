@@ -11,8 +11,8 @@ const CONFIG = {
   SUPABASE_KEY: 'sb_publishable_jarPut6H_Di8m8M7HNiCpQ_EDBTLXOk',
 
   // Hệ thống
-  TEN_HE_THONG:  'Báo cáo định kỳ tháng, quý, năm số liệu hoạt động ngành Nông nghiệp và Môi trường',
-  TEN_CO_QUAN:   'Sở Nông nghiệp và Môi trường',
+  TEN_HE_THONG:  'Báo cáo định kỳ tháng, quý, năm',
+  TEN_CO_QUAN:   'số liệu hoạt động ngành Nông nghiệp và Môi trường',
   MAT_KHAU_MAC_DINH: 'snnmt',
 
   // Tên bảng DB
