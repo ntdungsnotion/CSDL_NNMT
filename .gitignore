@@ -1,0 +1,8 @@
+# Không upload file chứa thông tin nhạy cảm
+config.js
+
+# File hệ thống
+.DS_Store
+Thumbs.db
+*.py[cod]
+__pycache__/
