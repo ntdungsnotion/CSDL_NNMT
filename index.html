@@ -500,12 +500,17 @@ const APP={
   },
 
   _moGSheet(url){
-    // Ưu tiên dùng link /pub?output=html (tránh X-Frame-Options block)
-    let pubUrl=url;
-    if(url.includes('/edit')||url.includes('/view')){
-      pubUrl=url.replace(/\/(edit|view)(\?.*)?$/,'/pub?output=html');
-    }else if(url.includes('/pub')&&!url.includes('output=')){
-      pubUrl=url+(url.includes('?')?'&':'?')+'output=html';
+   if (!url) return;
+  const twArea = UTILS.el('tw-area');
+  
+  // Không tự ý replace nữa, vì Admin đã convert chuẩn rồi
+  // Chỉ cần đảm bảo link trim sạch sẽ
+  const finalUrl = url.trim();
+
+  twArea.innerHTML = `
+    <div class="gs-wrap">
+      <iframe src="${finalUrl}" allowfullscreen></iframe>
+    </div>`;
     }
     const twArea=UTILS.el('tw-area');
     twArea.innerHTML=`<div class="gs-wrap"><iframe src="${pubUrl}" allowfullscreen></iframe></div>`;
