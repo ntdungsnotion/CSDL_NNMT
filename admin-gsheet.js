@@ -6,13 +6,18 @@
 // Chuyển link GSheet bất kỳ → embed URL (/pub?output=html)
 function gSheetToEmbed(url) {
   if (!url) return '';
-  // Nếu đã là /pub → dùng luôn (nhưng đảm bảo có output=html)
-  if (url.includes('/pub')) {
-    return url.includes('output=') ? url : url + (url.includes('?') ? '&' : '?') + 'output=html';
-  }
-  // Lấy fileId từ mọi dạng link GSheet
+  url = url.trim();
+
+  // Lấy ID của bảng tính từ URL
   const m = url.match(/\/spreadsheets\/d\/([\w-]+)/);
-  if (m) return `https://docs.google.com/spreadsheets/d/${m[1]}/pub?output=html`;
+  if (m) {
+    const fileId = m[1];
+    // Trả về link dạng edit với tham số rm=minimal (Rich Mode Minimal)
+    // - rm=minimal: Ẩn thanh công cụ, menu
+    // - ui=2: Sử dụng giao diện hiện đại
+    return `https://docs.google.com/spreadsheets/d/${fileId}/edit?rm=minimal`;
+  }
+
   return url;
 }
 
