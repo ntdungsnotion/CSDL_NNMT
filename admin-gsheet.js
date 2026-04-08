@@ -5,19 +5,19 @@
 
 // Chuyển link GSheet bất kỳ → embed URL (/pub?output=html)
 function gSheetToEmbed(url) {
-  if (!url) return '';
+   if (!url) return '';
   url = url.trim();
 
-  // Lấy ID của bảng tính từ URL
+  // Nếu là link đã xuất bản (pubhtml) thì giữ nguyên
+  if (url.includes('/pubhtml') || url.includes('/pub')) return url;
+
+  // Nếu là link edit/share thông thường
   const m = url.match(/\/spreadsheets\/d\/([\w-]+)/);
   if (m) {
     const fileId = m[1];
-    // Trả về link dạng edit với tham số rm=minimal (Rich Mode Minimal)
-    // - rm=minimal: Ẩn thanh công cụ, menu
-    // - ui=2: Sử dụng giao diện hiện đại
+    // Ép về dạng edit với tham số rm=minimal
     return `https://docs.google.com/spreadsheets/d/${fileId}/edit?rm=minimal`;
   }
-
   return url;
 }
 
