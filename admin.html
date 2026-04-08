@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quản trị – BC định kỳ NN và MT</title>
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="config.js"></script>
+<script src="db.js"></script>
+<script src="utils.js"></script>
+<!-- Các module chức năng -->
+<script src="admin-ky.js"></script>
+<script src="admin-taikhoan.js"></script>
+<script src="admin-chitieu.js"></script>
+<script src="admin-bang.js"></script>
+<script src="admin-gsheet.js"></script>
+<style>
+:root{
+  --xd:#1b4332;--xc:#2d6a4f;--xn:#52b788;--xp:#d8f3dc;
+  --w:#fff;--g1:#f4f6f5;--g2:#e4e9e6;--g3:#c5d0c9;--g4:#7a9485;--g5:#3d5247;
+  --dk:#1a2e22;--red:#c0392b;--yellow:#d97706;--blue:#1e40af;
+  --sw:210px;--font:'Be Vietnam Pro',sans-serif;--mono:'JetBrains Mono',monospace;--r:7px;
+}
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+/* ── LAYOUT CƠ BẢN — Mobile first ── */
+body{font-family:var(--font);font-size:14px;color:var(--dk);background:var(--g1);min-height:100vh;overflow-y:auto}
+#app{display:flex;min-height:100vh;position:relative}
+
+/* ── SIDEBAR ── */
+.sb{
+  width:var(--sw);background:var(--xd);display:flex;flex-direction:column;flex-shrink:0;
+  position:fixed;top:0;left:0;height:100vh;z-index:100;
+  transition:transform .25s cubic-bezier(.4,0,.2,1);
+}
+.sb-head{padding:14px 12px;border-bottom:1px solid rgba(255,255,255,.08)}
+.sb-logo{display:flex;align-items:center;gap:8px;margin-bottom:10px}
+.sb-logo .i{font-size:20px}.sb-logo .t{font-size:11px;font-weight:700;color:white;line-height:1.35}
+.sb-user{background:rgba(255,255,255,.07);border-radius:var(--r);padding:8px 10px}
+.sb-user .n{font-size:12px;font-weight:700;color:white}.sb-user .r{font-size:10px;color:rgba(255,255,255,.5);margin-top:1px}
+.sb-nav{flex:1;overflow-y:auto;padding:10px 8px}
+.sb-nav::-webkit-scrollbar{width:3px}.sb-nav::-webkit-scrollbar-thumb{background:rgba(255,255,255,.15);border-radius:2px}
+.nlbl{font-size:10px;font-weight:700;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.8px;padding:8px 8px 3px}
+.ni{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:6px;cursor:pointer;color:rgba(255,255,255,.65);font-size:12px;font-weight:500;transition:.15s;margin-bottom:1px}
+.ni:hover{background:rgba(255,255,255,.08);color:white}
+.ni.act{background:linear-gradient(135deg,var(--xc),#40916c);color:white}
+.ni .i{font-size:14px;width:17px;text-align:center;flex-shrink:0}
+.sb-foot{padding:8px;border-top:1px solid rgba(255,255,255,.07)}
+.sb-btn{width:100%;padding:7px;background:rgba(255,255,255,.06);border:none;border-radius:6px;color:rgba(255,255,255,.6);font-family:var(--font);font-size:11px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:5px;transition:.15s;margin-bottom:5px}
+.sb-btn:hover{background:rgba(255,255,255,.12);color:white}
+
+/* Overlay khi sidebar mở trên mobile */
+#sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:99}
+#sb-overlay.on{display:block}
+
+/* ── MAIN ── */
+.main{flex:1;display:flex;flex-direction:column;min-height:100vh;margin-left:var(--sw);transition:margin-left .25s}
+
+/* ── TOPBAR ── */
+.topbar{height:50px;background:white;border-bottom:1px solid var(--g2);display:flex;align-items:center;padding:0 18px;flex-shrink:0;box-shadow:0 1px 4px rgba(0,0,0,.07);position:sticky;top:0;z-index:50}
+.topbar-t{font-size:14px;font-weight:700;color:var(--xd);flex:1}
+
+/* Hamburger button — hiển thị trên mobile */
+#btn-hamburger{display:none;background:none;border:none;cursor:pointer;padding:6px;margin-right:8px;color:var(--xd);font-size:20px;line-height:1}
+
+/* ── CONTENT ── */
+.content{flex:1;padding:16px;overflow-x:hidden}
+.content::-webkit-scrollbar{width:6px}.content::-webkit-scrollbar-thumb{background:var(--g3);border-radius:3px}
+
+/* ── CARDS & TABLE ── */
+.card{background:white;border-radius:var(--r);box-shadow:0 1px 4px rgba(0,0,0,.08);overflow:hidden;margin-bottom:14px}
+.card-head{padding:12px 16px;border-bottom:1px solid var(--g2);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px}
+.card-head h3{font-size:14px;font-weight:700;color:var(--xd)}
+.filter-bar{padding:10px 16px;background:var(--g1);border-bottom:1px solid var(--g2);display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.filter-bar label{font-size:12px;color:var(--g5);font-weight:600}
+.filter-bar select,.filter-bar input[type=number]{padding:5px 8px;border:1.5px solid var(--g2);border-radius:5px;font-family:var(--font);font-size:12px;outline:none;background:white}
+.filter-bar select:focus,.filter-bar input:focus{border-color:var(--xc)}
+table.dt{width:100%;border-collapse:collapse;font-size:13px}
+table.dt thead th{background:var(--g1);padding:8px 12px;text-align:left;font-size:11px;font-weight:700;color:var(--g5);text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--g2);white-space:nowrap;cursor:pointer;user-select:none}
+table.dt thead th:hover{background:var(--g2)}
+table.dt thead th .sort-icon{margin-left:4px;opacity:.5}
+table.dt thead th.sort-asc .sort-icon::after{content:'↑'}
+table.dt thead th.sort-desc .sort-icon::after{content:'↓'}
+table.dt thead th:not(.sort-asc):not(.sort-desc) .sort-icon::after{content:'↕'}
+table.dt td{padding:8px 12px;border-bottom:1px solid var(--g2)}
+table.dt tr:last-child td{border-bottom:none}
+table.dt tr:hover td{background:#f7faf8}
+
+/* ── BADGES, BUTTONS, FORMS ── */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600}
+.badge.green{background:#d1fae5;color:#065f46}.badge.red{background:#fee2e2;color:#991b1b}
+.badge.blue{background:#dbeafe;color:var(--blue)}.badge.gray{background:var(--g2);color:var(--g5)}
+.badge.yellow{background:#fef3c7;color:#92400e}
+.btn{padding:6px 12px;border:none;border-radius:6px;font-family:var(--font);font-size:12px;font-weight:600;cursor:pointer;transition:.15s}
+.btn.primary{background:var(--xc);color:white}.btn.primary:hover{opacity:.85}
+.btn.danger{background:#fee2e2;color:var(--red)}.btn.danger:hover{background:#fecaca}
+.btn.ghost{background:var(--g2);color:var(--g5)}.btn.ghost:hover{background:var(--g3)}
+.fg{display:flex;flex-direction:column;gap:4px}
+.fg label,.lbl{font-size:11px;font-weight:700;color:var(--g5);text-transform:uppercase;letter-spacing:.3px}
+.inp{width:100%;padding:8px 10px;border:1.5px solid var(--g2);border-radius:var(--r);font-family:var(--font);font-size:13px;outline:none;transition:.2s;color:var(--dk)}
+.inp:focus{border-color:var(--xc);box-shadow:0 0 0 3px rgba(45,106,79,.1)}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;padding:14px 16px}
+.form-actions{padding:10px 16px;border-top:1px solid var(--g2);display:flex;gap:8px}
+.sw-wrap{display:flex;align-items:center;gap:6px}
+.sw{position:relative;width:36px;height:20px;cursor:pointer}
+.sw input{opacity:0;width:0;height:0}
+.sw-slider{position:absolute;inset:0;background:var(--g3);border-radius:20px;transition:.2s}
+.sw input:checked+.sw-slider{background:var(--xn)}
+.sw-slider::before{content:'';position:absolute;width:14px;height:14px;left:3px;top:3px;background:white;border-radius:50%;transition:.2s}
+.sw input:checked+.sw-slider::before{transform:translateX(16px)}
+.sw-lbl{font-size:12px;color:var(--g5)}
+.err-txt{color:var(--red);font-size:12px;min-height:16px}
+.mono{font-family:var(--mono);font-size:12px}
+.loading{display:flex;align-items:center;justify-content:center;gap:8px;padding:32px;color:var(--g4);font-size:13px}
+.spin{width:16px;height:16px;border:2px solid var(--g2);border-top-color:var(--xc);border-radius:50%;animation:sp .6s linear infinite;display:inline-block}
+@keyframes sp{to{transform:rotate(360deg)}}
+.empty{display:flex;flex-direction:column;align-items:center;padding:40px;color:var(--g4);gap:8px;font-size:13px}.empty .i{font-size:30px}
+.num-inp{width:60px;padding:4px 6px;border:1.5px solid var(--g2);border-radius:5px;font-family:var(--mono);font-size:12px;text-align:center;outline:none}
+.num-inp:focus{border-color:var(--xc)}
+
+/* ── TOAST ── */
+.toast{position:fixed;top:58px;right:14px;padding:10px 15px;border-radius:var(--r);font-size:13px;color:white;box-shadow:0 2px 10px rgba(0,0,0,.15);transform:translateX(110%);transition:.3s;z-index:200}
+.toast.on{transform:translateX(0)}.toast.ok{background:#1b5e20}.toast.er{background:var(--red)}
+
+/* ── MODAL ── */
+.modal-bg{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:300;align-items:center;justify-content:center;padding:12px}
+.modal-bg.on{display:flex}
+.mbox{background:white;border-radius:14px;padding:24px;min-width:300px;max-width:500px;width:100%;box-shadow:0 8px 28px rgba(0,0,0,.2);max-height:90vh;overflow-y:auto}
+.mbox h3{color:var(--xd);margin-bottom:5px}.mbox p{font-size:12px;color:var(--g4);margin-bottom:14px}
+.mrow{display:flex;flex-direction:column;gap:10px;margin-bottom:14px}.mbtns{display:flex;gap:8px;flex-wrap:wrap}
+.btn-p{padding:8px 18px;background:var(--xc);color:white;border:none;border-radius:6px;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer}
+.btn-g{padding:8px 14px;background:var(--g2);color:var(--g5);border:none;border-radius:6px;font-family:var(--font);font-size:13px;cursor:pointer}
+
+/* ── BẢNG CHỈ TIÊU — kéo thả cột ── */
+table.ct-tbl{width:100%;border-collapse:collapse;font-size:12px;table-layout:fixed}
+table.ct-tbl thead th{background:var(--g1);padding:6px 8px;text-align:left;font-size:10px;font-weight:700;color:var(--g5);text-transform:uppercase;letter-spacing:.4px;border-bottom:2px solid var(--g2);position:relative;overflow:hidden;white-space:nowrap;user-select:none}
+table.ct-tbl thead th .rh{position:absolute;right:0;top:0;bottom:0;width:5px;cursor:col-resize;background:transparent;z-index:1}
+table.ct-tbl thead th .rh:hover{background:var(--g3)}
+table.ct-tbl td{padding:3px 8px;border-bottom:1px solid var(--g2);vertical-align:middle;overflow:hidden}
+table.ct-tbl tr:hover td{background:#f7faf8}
+table.ct-tbl tr.tr-td{background:var(--xp)}
+table.ct-tbl tr.tr-td td{font-weight:600;color:var(--xd)}
+table.ct-tbl tr.tr-locked{opacity:.55}
+.ct-tbl .cell-text{white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
+.ct-tbl .cell-wrap{white-space:normal;word-break:break-word;display:block}
+.ct-inp{width:100%;padding:2px 5px;border:1.5px solid transparent;border-radius:4px;font-family:var(--font);font-size:12px;background:transparent;outline:none;transition:.15s}
+.ct-inp:focus{border-color:var(--xc);background:white}
+.ct-inp.mono{font-family:var(--mono)}
+.ct-sel{width:100%;padding:2px 4px;border:1.5px solid var(--g2);border-radius:4px;font-size:11px;font-family:var(--font);background:white;outline:none}
+.ct-sel:focus{border-color:var(--xc)}
+
+/* ── RESPONSIVE MOBILE ── */
+@media (max-width: 768px) {
+  :root{--sw:240px}
+  .sb{transform:translateX(-100%)}
+  .sb.open{transform:translateX(0)}
+  .main{margin-left:0}
+  #btn-hamburger{display:flex}
+  .content{padding:10px}
+  .card-head{flex-direction:column;align-items:flex-start}
+  /* Các bảng có thể cuộn ngang */
+  .dt-wrap,.table-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch}
+  table.dt td,table.dt thead th{padding:6px 8px;font-size:12px}
+  /* Bảng chỉ tiêu cuộn ngang */
+  #ct-content .card > div[style*="overflow-x"]{overflow-x:auto;-webkit-overflow-scrolling:touch}
+}
+@media (min-width: 769px) {
+  #sb-overlay{display:none!important}
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- Sidebar -->
+  <aside class="sb" id="sidebar">
+    <div class="sb-head">
+      <div class="sb-logo"><span class="i">⚙️</span>
+        <div class="t">Quản trị<br><span style="opacity:.55;font-weight:400">BC định kỳ NN &amp; MT</span></div>
+      </div>
+      <div class="sb-user">
+        <div class="n" id="sb-name">Đang tải...</div>
+        <div class="r" id="sb-role"></div>
+      </div>
+    </div>
+    <nav class="sb-nav" id="sb-nav"></nav>
+    <div class="sb-foot">
+      <button class="sb-btn" onclick="window.close()">✕ Đóng trang này</button>
+    </div>
+  </aside>
+
+  <!-- Overlay mobile -->
+  <div id="sb-overlay" onclick="ADMIN_CORE.dongSidebar()"></div>
+
+  <!-- Main -->
+  <main class="main">
+    <div class="topbar">
+      <button id="btn-hamburger" onclick="ADMIN_CORE.toggleSidebar()" aria-label="Menu">☰</button>
+      <div class="topbar-t" id="topbar-t">Quản trị hệ thống</div>
+    </div>
+    <div class="content" id="content">
+      <div class="loading"><span class="spin"></span> Đang tải...</div>
+    </div>
+  </main>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<!-- ── MODAL XÁC NHẬN ── -->
+<div class="modal-bg" id="modal-xn">
+  <div class="mbox">
+    <h3 id="xn-title">Xác nhận</h3><p id="xn-msg"></p>
+    <div class="mbtns">
+      <button class="btn danger" id="xn-ok">Xác nhận</button>
+      <button class="btn ghost" onclick="UTILS.dongModal('modal-xn')">Huỷ</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL KỲ BÁO CÁO ── -->
+<div class="modal-bg" id="modal-ky">
+  <div class="mbox">
+    <h3 id="ky-modal-title">Thêm kỳ báo cáo</h3>
+    <p>Mã kỳ tự động sinh — bạn có thể chỉnh lại.</p>
+    <div class="mrow">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="fg"><label>Tháng</label>
+          <input class="inp" id="ky-thang" type="number" min="1" max="12" placeholder="3" oninput="sinhMaKy()"></div>
+        <div class="fg"><label>Năm</label>
+          <input class="inp" id="ky-nam" type="number" placeholder="2026" oninput="sinhMaKy()"></div>
+      </div>
+      <div class="fg"><label>Loại số liệu</label>
+        <select class="inp" id="ky-loai" onchange="sinhMaKy()">
+          <option value="Ước thực hiện">Ước thực hiện</option>
+          <option value="Ước lũy kế">Ước lũy kế</option>
+          <option value="Chính thức">Chính thức</option>
+          <option value="Lũy kế chính thức">Lũy kế chính thức</option>
+          <option value="So cùng kỳ">So cùng kỳ</option>
+        </select></div>
+      <div class="fg"><label>Mã kỳ <span style="color:var(--g4);font-weight:400">(tự sinh, có thể sửa)</span></label>
+        <input class="inp mono" id="ky-ma" type="text" placeholder="uoc_03/2026"></div>
+      <div class="fg"><label>Tên kỳ đầy đủ</label>
+        <input class="inp" id="ky-ten" type="text" placeholder="Ước tháng 3 năm 2026"></div>
+      <div class="fg"><label>Nguồn số liệu mặc định</label>
+        <input class="inp" id="ky-nguon" type="text" placeholder="Dữ liệu ngành"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="fg"><label>Thứ tự hiển thị</label>
+          <input class="inp" id="ky-thutu" type="number" placeholder="1" min="1"></div>
+        <div class="fg"><label>Độ rộng cột (px)</label>
+          <input class="inp" id="ky-dorong" type="number" placeholder="120" min="60" max="300"></div>
+      </div>
+    </div>
+    <div class="mbtns">
+      <button class="btn-p" onclick="KY_MODAL.luu()">💾 Lưu kỳ</button>
+      <button class="btn-g" onclick="UTILS.dongModal('modal-ky')">Huỷ</button>
+    </div>
+    <div class="err-txt" id="err-ky" style="margin-top:8px"></div>
+  </div>
+</div>
+
+<!-- ── MODAL TÀI KHOẢN ── -->
+<div class="modal-bg" id="modal-tk">
+  <div class="mbox">
+    <h3 id="tk-modal-title">Thêm tài khoản</h3>
+    <p>Mật khẩu mặc định: <strong id="mk-mac-admin"></strong></p>
+    <div class="mrow">
+      <div class="fg"><label>Tên đơn vị / phòng ban</label>
+        <input class="inp" id="tk-donvi" placeholder="Chi cục Thủy sản"></div>
+      <div class="fg"><label>Họ tên người phụ trách</label>
+        <input class="inp" id="tk-hoten" placeholder="Nguyễn Văn A"></div>
+      <div class="fg"><label>Email (tuỳ chọn)</label>
+        <input class="inp" id="tk-email" type="email" placeholder="a@sonmt.gov.vn"></div>
+      <div class="fg"><label>Vai trò</label>
+        <select class="inp" id="tk-vaitro">
+          <option value="editor">Người nhập liệu (Editor)</option>
+          <option value="admin">Quản trị viên (Admin)</option>
+        </select></div>
+    </div>
+    <div class="mbtns">
+      <button class="btn-p" onclick="TK_MODAL.luu()">💾 Lưu</button>
+      <button class="btn-g" onclick="UTILS.dongModal('modal-tk')">Huỷ</button>
+    </div>
+    <div class="err-txt" id="err-tk" style="margin-top:8px"></div>
+  </div>
+</div>
+
+<!-- ── MODAL PHÂN QUYỀN ── -->
+<div class="modal-bg" id="modal-pq">
+  <div class="mbox">
+    <h3 id="pq-title">Phân quyền bảng</h3><p id="pq-sub"></p>
+    <div id="pq-list" style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px"></div>
+    <div class="mbtns">
+      <button class="btn-p" onclick="_luuPQ()">💾 Lưu phân quyền</button>
+      <button class="btn-g" onclick="UTILS.dongModal('modal-pq')">Đóng</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── MODAL THÊM CHỈ TIÊU ── -->
+<div class="modal-bg" id="modal-ct">
+  <div class="mbox" style="max-width:560px;width:100%">
+    <h3 id="ct-modal-title">➕ Thêm chỉ tiêu mới</h3>
+    <p>Mã hệ thống phải duy nhất. Thứ tự dùng số thực để chèn linh hoạt (vd: 1.5 nằm giữa 1 và 2).</p>
+    <div class="mrow">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="fg"><label>Mã hệ thống <span style="color:var(--red)">*</span></label>
+          <input class="inp mono" id="ct-id" placeholder="TT01, CN_01..." autocomplete="off"></div>
+        <div class="fg"><label>Mã Bộ</label>
+          <input class="inp mono" id="ct-idbo" placeholder="(tuỳ chọn)"></div>
+      </div>
+      <div class="fg"><label>Tên chỉ tiêu <span style="color:var(--red)">*</span></label>
+        <input class="inp" id="ct-ten" placeholder="Tổng diện tích canh tác"></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="fg"><label>Đơn vị tính</label>
+          <input class="inp" id="ct-dvt" placeholder="Ha, tấn, con..."></div>
+        <div class="fg"><label>Thứ tự <span style="color:var(--red)">*</span></label>
+          <input class="inp mono" id="ct-thutu" type="number" step="any" placeholder="1, 1.5, 2.1..."></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="fg"><label>STT hiển thị</label>
+          <input class="inp" id="ct-stt" placeholder="I, 1, 1.1, a..."></div>
+        <div class="fg"><label>Kiểu dữ liệu</label>
+          <select class="inp" id="ct-kieu">
+            <option value="number">Số (number)</option>
+            <option value="text">Văn bản (text)</option>
+          </select></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="fg"><label>Tần suất</label>
+          <select class="inp" id="ct-tansuat">
+            <option value="hang_thang">Hàng tháng</option>
+            <option value="hang_quy">Hàng quý</option>
+            <option value="nua_nam">Nửa năm</option>
+            <option value="cuoi_nam">Cuối năm</option>
+            <option value="nam_dac_biet">Năm đặc biệt</option>
+          </select></div>
+        <div class="fg"><label>Là tiêu đề nhóm?</label>
+          <select class="inp" id="ct-latd">
+            <option value="false">Không (dòng nhập liệu)</option>
+            <option value="true">Có (tiêu đề nhóm)</option>
+          </select></div>
+      </div>
+    </div>
+    <div class="mbtns">
+      <button class="btn-p" onclick="CT_MODAL.luu()">💾 Thêm chỉ tiêu</button>
+      <button class="btn-g" onclick="UTILS.dongModal('modal-ct')">Huỷ</button>
+    </div>
+    <div class="err-txt" id="err-ct" style="margin-top:8px"></div>
+  </div>
+</div>
+
+<!-- ── MODAL XÓA CHỈ TIÊU (bảo vệ mật khẩu cấp 2) ── -->
+<div class="modal-bg" id="modal-xoa-ct">
+  <div class="mbox" style="max-width:420px;width:100%">
+    <h3 style="color:var(--red)">🗑️ Xác nhận xóa chỉ tiêu</h3>
+    <p id="xoa-ct-info" style="margin:10px 0 14px;font-size:13px;line-height:1.6"></p>
+    <div class="mrow">
+      <div class="fg">
+        <label>Mật khẩu cấp 2 <span style="color:var(--red)">*</span></label>
+        <input class="inp" type="password" id="mk2-inp" placeholder="Nhập mật khẩu bảo vệ..."
+          onkeydown="if(event.key==='Enter')CT_XOA.xacNhan()">
+      </div>
+    </div>
+    <div class="mbtns">
+      <button class="btn-p" style="background:var(--red)" onclick="CT_XOA.xacNhan()">🗑️ Xác nhận xóa</button>
+      <button class="btn-g" onclick="UTILS.dongModal('modal-xoa-ct')">Huỷ</button>
+    </div>
+    <div class="err-txt" id="err-xoa-ct" style="margin-top:8px"></div>
+  </div>
+</div>
+
+<script>
+// ── ADMIN CORE — khởi tạo, menu, state dùng chung ──
+const ADMIN_CORE = {
+  user: null,
+  dsKy: [],
+  dsTK: [],
+  dsBang: [],
+
+  async init() {
+    const sv = UTILS.laySession();
+    if (!sv) { alert('Vui lòng đăng nhập từ trang chính!'); window.close(); return; }
+    this.user = sv;
+    UTILS.el('sb-name').textContent = sv.don_vi;
+    UTILS.el('sb-role').textContent = sv.vai_tro === 'admin' ? '⚙️ Quản trị viên' : '✏️ Người nhập liệu';
+    UTILS.el('mk-mac-admin').textContent = CONFIG.MAT_KHAU_MAC_DINH;
+
+    if (sv.vai_tro === 'admin') {
+      this._buildMenuAdmin();
+      await Promise.all([this.loadKy(), this.loadTK(), this.loadBang()]);
+      hienKyBaoCao();
+    } else {
+      this._buildMenuUser();
+      hienDoiPass();
+    }
+  },
+
+  async loadKy(namBD, namKT) { this.dsKy = await DB.layTatCaKy(namBD, namKT); },
+  async loadTK()              { this.dsTK = await DB.layTatCaTaiKhoan(); },
+  async loadBang()            { this.dsBang = await DB.layTatCaBang(); },
+
+  setAct(id) {
+    document.querySelectorAll('.ni').forEach(e => e.classList.remove('act'));
+    UTILS.el(id)?.classList.add('act');
+    // Trên mobile: đóng sidebar sau khi chọn menu
+    if (window.innerWidth <= 768) this.dongSidebar();
+  },
+
+  _buildMenuAdmin() {
+    UTILS.el('sb-nav').innerHTML = `
+      <div class="nlbl">Quản lý</div>
+      <div class="ni act" id="ni-ky" onclick="hienKyBaoCao()"><span class="i">📅</span> Kỳ báo cáo</div>
+      <div class="ni" id="ni-tk" onclick="hienTaiKhoan()"><span class="i">👤</span> Tài khoản</div>
+      <div class="ni" id="ni-pq" onclick="hienPhanQuyen()"><span class="i">🔑</span> Phân quyền</div>
+      <div class="ni" id="ni-ct" onclick="hienChiTieu()"><span class="i">📑</span> Chỉ tiêu</div>
+      <div class="ni" id="ni-bang" onclick="hienQuanLyBang()"><span class="i">🗂️</span> Quản lý bảng</div>
+      <div class="ni" id="ni-tdb" onclick="hienTieuDeBang()"><span class="i">🏷️</span> Tiêu đề bảng</div>
+      <div class="ni" id="ni-gs" onclick="hienGSheet()"><span class="i">📊</span> Google Sheet</div>
+      <div class="nlbl">Tài khoản</div>
+      <div class="ni" onclick="hienDoiPass()"><span class="i">🔐</span> Đổi mật khẩu</div>`;
+  },
+
+  _buildMenuUser() {
+    UTILS.el('sb-nav').innerHTML = `
+      <div class="nlbl">Tài khoản</div>
+      <div class="ni act" onclick="hienDoiPass()"><span class="i">🔐</span> Đổi mật khẩu</div>`;
+  },
+
+  // Sidebar toggle cho mobile
+  toggleSidebar() {
+    const sb = UTILS.el('sidebar');
+    const ov = UTILS.el('sb-overlay');
+    const open = sb.classList.toggle('open');
+    ov.classList.toggle('on', open);
+  },
+  dongSidebar() {
+    UTILS.el('sidebar').classList.remove('open');
+    UTILS.el('sb-overlay').classList.remove('on');
+  },
+};
+
+// Shortcut tương thích ngược
+const sb = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_KEY);
+
+window.addEventListener('load', () => ADMIN_CORE.init());
+</script>
+</body>
+</html>
