@@ -131,6 +131,34 @@ const DB = {
     if (error) throw error;
   },
 
+  // ── CỘT SO SÁNH (cau_hinh_so_sanh) ─────────────────────
+  // Cột so sánh trong bảng nhập liệu = Kỳ A (ky_tu) ÷ Kỳ B (ky_mau) × 100%
+  async laySoSanh(chiHienThi = false) {
+    if (!CONFIG.BANG.SO_SANH) return [];
+    let q = sb.from(CONFIG.BANG.SO_SANH).select('*')
+      .order('thu_tu', { ascending: true, nullsFirst: false })
+      .order('id', { ascending: true });
+    if (chiHienThi) q = q.eq('hien_thi', true);
+    const { data, error } = await q;
+    if (error) throw error;
+    return data || [];
+  },
+
+  async themSoSanh(row) {
+    const { error } = await sb.from(CONFIG.BANG.SO_SANH).insert(row);
+    if (error) throw error;
+  },
+
+  async suaSoSanh(id, row) {
+    const { error } = await sb.from(CONFIG.BANG.SO_SANH).update(row).eq('id', id);
+    if (error) throw error;
+  },
+
+  async xoaSoSanh(id) {
+    const { error } = await sb.from(CONFIG.BANG.SO_SANH).delete().eq('id', id);
+    if (error) throw error;
+  },
+
   // ── CHỈ TIÊU ───────────────────────────────────────────
   async layChiTieuTheoBang(maBang) {
     const { data, error } = await sb

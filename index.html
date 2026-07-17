@@ -167,6 +167,13 @@ table.t td.td-u{text-align:center;font-size:11px;color:var(--g4)}
 }
 .ot:disabled{background:var(--g1);cursor:default}
 
+/* ── Cột so sánh (chỉ đọc, tự tính) — giống xembaocao.html ── */
+table.t th.th-cmp{background:#1e40af}
+table.t td.td-cmp{text-align:right;font-family:var(--mono);font-size:13px;font-weight:600;background:#f5f8ff;padding:3px 8px}
+table.t td.td-cmp.up{color:#15803d}table.t td.td-cmp.down{color:var(--red)}table.t td.td-cmp.na{color:var(--g3);font-weight:400}
+table.t tr:not(.tr-h):hover td.td-cmp{background:#eaf0ff}
+table.t tr.tr-focused td.td-cmp{background:#e8f5e9 !important}
+
 .td-id{display:none!important}
 .th-id{display:none!important}
 .th-ng{display:none!important}
@@ -339,7 +346,7 @@ table.t tr.tr-locked td.td-n{background:#fafafa;color:var(--g4)}
 
 <script>
 const APP={
-  user:null, dsTK:[], dsBang:[], dsKy:[], bangHT:null, changes:{},
+  user:null, dsTK:[], dsBang:[], dsKy:[], dsSoSanh:[], bangHT:null, changes:{},
 
   async init(){
     document.title=CONFIG.TEN_HE_THONG+' – '+CONFIG.TEN_CO_QUAN;
@@ -500,7 +507,17 @@ const APP={
   },
 
   async loadBang(){this.dsBang=this.user.vai_tro==='admin'?await DB.layTatCaBang():await DB.layBangDuocPhep(this.user.id)},
-  async loadKy(){this.dsKy=await DB.layKyHienThi()},
+  async loadKy(){
+    this.dsKy=await DB.layKyHienThi();
+    // Cấu hình cột so sánh (thiết lập tại admin.html → Kỳ báo cáo).
+    // Chỉ giữ cột mà CẢ HAI kỳ (tử & mẫu) đều đang hiển thị trong bảng nhập.
+    // Bảng cau_hinh_so_sanh có thể chưa tồn tại → coi như không có cột nào.
+    try{
+      const ss=await DB.laySoSanh(true);
+      const ma=new Set(this.dsKy.map(k=>k.ky_bao_cao));
+      this.dsSoSanh=ss.filter(c=>ma.has(c.ky_tu)&&ma.has(c.ky_mau));
+    }catch(e){this.dsSoSanh=[];}
+  },
   dsGSheet:[],
   async loadGSheet(){
     // Bảng danh_sach_gsheet có thể chưa tồn tại → coi như không có sheet nào
@@ -656,20 +673,33 @@ const APP={
         <div class="resize-handle" onmousedown="APP.startResize(event,'${k.ky_bao_cao}')"></div>
       </th>`;
     });
+    // ── Cột so sánh (Kỳ A ÷ Kỳ B × 100%) — chỉ đọc, cấu hình tại admin ──
+    (this.dsSoSanh||[]).forEach(cp=>{
+      const w=cp.do_rong_cot||128;
+      th+=`<th class="th-cmp" style="min-width:${w}px;width:${w}px" title="${this._tenKyNgan(cp.ky_tu)} ÷ ${this._tenKyNgan(cp.ky_mau)} × 100%">
+        <div style="display:flex;flex-direction:column;align-items:center;gap:2px">
+          <span>${this._tenKyNgan(cp.ky_tu)}</span>
+          <span style="opacity:.75;font-weight:400">÷ ${this._tenKyNgan(cp.ky_mau)} × 100%</span>
+        </div></th>`;
+    });
     th+=`<th class="th-gc" style="width:${wGc}px">Ghi chú</th>
          <th class="th-ng" style="width:100px">Nguồn số liệu</th></tr>`;
+    // Kỳ dùng để LƯU ghi chú & nguồn số liệu:
+    // = kỳ "Ước thực hiện" có thu_tu_hien_thi LỚN NHẤT trong các cột đang hiển thị
+    // (fallback: kỳ đang mở nhập đầu tiên nếu không có kỳ Ước thực hiện nào).
+    const kmGC=this._kyGhiChu();
     let tb='';
     ct.forEach(c=>{
       const ind=UTILS.demKhoang(c.chi_tieu)*4;
       const sttHT=c.stt_hien_thi!=null&&c.stt_hien_thi!==''?c.stt_hien_thi:'';
       if(c.la_tieu_de){
-        tb+=`<tr class="tr-h"><td class="td-stt">${sttHT}</td><td class="td-id" style="font-size:10px">${c.id}</td><td class="td-n" style="padding-left:${ind+10}px">${c.chi_tieu.trim()}</td><td class="td-u"></td>${this.dsKy.map(()=>'<td></td>').join('')}<td></td><td></td></tr>`;
+        tb+=`<tr class="tr-h"><td class="td-stt">${sttHT}</td><td class="td-id" style="font-size:10px">${c.id}</td><td class="td-n" style="padding-left:${ind+10}px">${c.chi_tieu.trim()}</td><td class="td-u"></td>${this.dsKy.map(()=>'<td></td>').join('')}${(this.dsSoSanh||[]).map(()=>'<td></td>').join('')}<td></td><td></td></tr>`;
       }else{
-        const km=this.dsKy.find(k=>!k.khoa_nhap_lieu);
-        const kgc=km?`${c.id}|${km.ky_bao_cao}`:null;
+        const kgc=kmGC?`${c.id}|${kmGC.ky_bao_cao}`:null;
         const gc=kgc?(idx[kgc]?.ghi_chu||''):'';
         const ng=kgc?(idx[kgc]?.nguon_so_lieu||''):'';
 
+        const isTextRow=c.kieu_du_lieu==='text';
         let tdk='';
         this.dsKy.forEach(k=>{
           const key=`${c.id}|${k.ky_bao_cao}`;
@@ -690,10 +720,52 @@ const APP={
             onblur="APP.clearFocusRow(this)"
             onkeydown="APP.navKey(event,this)"></td>`;
         });
-        tb+=`<tr><td class="td-stt">${sttHT}</td><td class="td-id">${c.id}</td><td class="td-n" style="padding-left:${ind+10}px">${c.chi_tieu.trim()}</td><td class="td-u">${c.don_vi||''}</td>${tdk}<td style="padding:2px 4px"><input type="text" class="ot" data-gc="${c.id}" value="${gc}" ${!km?'disabled':''} onchange="APP.ghiNhan(this,'gc')" onfocus="APP.setFocusRow(this)" onblur="APP.clearFocusRow(this)"></td><td class="td-ng" style="padding:2px 4px"><input type="text" class="ot" data-ng="${c.id}" value="${ng}" ${!km?'disabled':''} onchange="APP.ghiNhan(this,'ng')" onfocus="APP.setFocusRow(this)" onblur="APP.clearFocusRow(this)"></td></tr>`;
+        // Ô so sánh chỉ đọc — giá trị được tính lại bằng JS sau khi render / khi nhập
+        let tdc='';
+        (this.dsSoSanh||[]).forEach(cp=>{
+          tdc+=`<td class="td-cmp na" data-cmp="1"${isTextRow?' data-text="1"':''} data-tu="${cp.ky_tu}" data-mau="${cp.ky_mau}">–</td>`;
+        });
+        tb+=`<tr><td class="td-stt">${sttHT}</td><td class="td-id">${c.id}</td><td class="td-n" style="padding-left:${ind+10}px">${c.chi_tieu.trim()}</td><td class="td-u">${c.don_vi||''}</td>${tdk}${tdc}<td style="padding:2px 4px"><input type="text" class="ot" data-gc="${c.id}|${kmGC?kmGC.ky_bao_cao:''}" value="${gc}" ${!kmGC?'disabled':''} onchange="APP.ghiNhan(this,'gc')" onfocus="APP.setFocusRow(this)" onblur="APP.clearFocusRow(this)"></td><td class="td-ng" style="padding:2px 4px"><input type="text" class="ot" data-ng="${c.id}|${kmGC?kmGC.ky_bao_cao:''}" value="${ng}" ${!kmGC?'disabled':''} onchange="APP.ghiNhan(this,'ng')" onfocus="APP.setFocusRow(this)" onblur="APP.clearFocusRow(this)"></td></tr>`;
       }
     });
     UTILS.el('tw').innerHTML=`<table class="t"><thead>${th}</thead><tbody>${tb}</tbody></table>`;
+    this.tinhTatCaSoSanh();
+  },
+
+  // ── CỘT SO SÁNH (Kỳ A ÷ Kỳ B × 100%) — chỉ đọc, tự tính lại khi nhập ──
+  _tenKyNgan(code){
+    const k=this.dsKy.find(x=>x.ky_bao_cao===code);
+    return k?(k.ky_bao_cao_tieu_de||('T'+k.thang_bao_cao+'/'+k.nam_bao_cao)):code;
+  },
+
+  // Kỳ lưu ghi chú/nguồn: kỳ "Ước thực hiện" có thu_tu_hien_thi LỚN NHẤT
+  // trong các cột đang hiển thị; fallback = kỳ đang mở nhập đầu tiên.
+  _kyGhiChu(){
+    const uoc=this.dsKy.filter(k=>(k.loai_so_lieu||'').trim().toLowerCase()==='ước thực hiện');
+    if(uoc.length) return uoc.reduce((a,b)=>((Number(a.thu_tu_hien_thi)||0)>=(Number(b.thu_tu_hien_thi)||0)?a:b));
+    return this.dsKy.find(k=>!k.khoa_nhap_lieu)||null;
+  },
+
+  // Tính % cho các ô so sánh trong 1 dòng, dựa trên giá trị ĐANG NHẬP trong ô
+  tinhSoSanhRow(tr){
+    if(!tr)return;
+    tr.querySelectorAll('td[data-cmp]').forEach(td=>{
+      if(td.dataset.text==='1'){td.textContent='–';td.className='td-cmp na';td.title='Chỉ tiêu dạng chữ';return}
+      const inpTu=tr.querySelector(`.os[data-ky="${td.dataset.tu}"]`);
+      const inpMau=tr.querySelector(`.os[data-ky="${td.dataset.mau}"]`);
+      const tu=inpTu?UTILS.parseSo(inpTu.value):null;
+      const mau=inpMau?UTILS.parseSo(inpMau.value):null;
+      if(tu===null||mau===null||mau===0){
+        td.textContent='–';td.className='td-cmp na';td.title='Thiếu số liệu hoặc mẫu số = 0';return;
+      }
+      const pct=tu/mau*100;
+      td.className='td-cmp '+(pct>100?'up':(pct<100?'down':''));
+      td.textContent=UTILS.formatSo(Math.round(pct*10)/10)+'%';
+      td.title='';
+    });
+  },
+  tinhTatCaSoSanh(){
+    document.querySelectorAll('table.t tbody tr:not(.tr-h)').forEach(tr=>this.tinhSoSanhRow(tr));
   },
 
   // ── Highlight hàng đang focus ──
@@ -723,6 +795,7 @@ const APP={
   ghiNhan(el,loai){
     const key=el.dataset.key||el.dataset.gc||el.dataset.ng;
     this.changes[`${loai||'so'}|${key}`]=el.value;
+    if(!loai)this.tinhSoSanhRow(el.closest('tr'));  // ô số đổi → tính lại cột so sánh của dòng
     UTILS.el('cnt').textContent=Object.keys(this.changes).length;
     UTILS.bat('sbar');
     const _bl=UTILS.el('btn-luu-top');if(_bl){_bl.style.background='#2d6a4f';_bl.style.color='#fff';_bl.style.cursor='pointer';}
@@ -863,7 +936,7 @@ const APP={
         const n=parseFloat(v);   // parseFloat luôn dùng dấu chấm chuẩn quốc tế (giống JSON)
         return isNaN(n)?v:n;     // trả về number -> SheetJS ghi đúng kiểu số, Excel không đọc sai
       });
-      const gc=coData?(idx[c.id+'|'+(this.dsKy.find(k=>!k.khoa_nhap_lieu)?.ky_bao_cao)]?.ghi_chu||''):'';
+      const gc=coData?(idx[c.id+'|'+(this._kyGhiChu()?.ky_bao_cao)]?.ghi_chu||''):'';
       rowsMaKy.push([c.id,c.chi_tieu.trim(),c.don_vi||'',...kyVals,gc,'']);
     });
 

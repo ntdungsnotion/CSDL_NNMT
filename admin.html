@@ -338,6 +338,7 @@ function closeSidebar(){
 
 let user=null, dsKy=[], dsTK=[], dsBang=[], editKyId=null, editTKId=null, pqTKId=null;
 let sortCol='', sortDir=1; // sort kỳ báo cáo
+let dsSoSanh=[], coBangSoSanh=true; // cấu hình cột so sánh (Kỳ A ÷ Kỳ B × 100%)
 
 // ── INIT ──
 window.addEventListener('load', async () => {
@@ -391,6 +392,9 @@ async function hienKyBaoCao() {
   if (!filterNamBD) filterNamBD = namHienTai - 1;
   if (!filterNamKT) filterNamKT = namHienTai + 1;
   await loadKy(filterNamBD, filterNamKT);
+  // Bảng cau_hinh_so_sanh có thể chưa được tạo → hiện hướng dẫn thay vì lỗi
+  try { dsSoSanh = await DB.laySoSanh(false); coBangSoSanh = true; }
+  catch(e) { dsSoSanh = []; coBangSoSanh = false; }
   renderKyBaoCao();
 }
 
@@ -479,7 +483,126 @@ function renderKyBaoCao() {
           <tbody>${tbody||'<tr><td colspan="10" style="text-align:center;padding:20px;color:var(--g4)">Không có kỳ báo cáo nào</td></tr>'}</tbody>
         </table>
       </div>
+    </div>
+    ${renderCardSoSanh()}`;
+}
+
+// ── CỘT SO SÁNH TRONG BẢNG NHẬP LIỆU (index.html) ──
+// Cột = Kỳ A ÷ Kỳ B × 100%, chỉ đọc, tự tính lại khi số liệu nhập thay đổi.
+function tenKyAdmin(ma) {
+  const k = dsKy.find(x => x.ky_bao_cao === ma);
+  return k ? (k.ky_bao_cao_tieu_de || ma) : ma;
+}
+
+function renderCardSoSanh() {
+  if (!coBangSoSanh) {
+    return `<div class="card" style="margin-top:12px">
+      <div class="card-head"><h3>➗ Cột so sánh trong bảng nhập liệu</h3></div>
+      <div style="padding:14px;font-size:13px;color:var(--g5)">
+        ⚠️ Chưa tạo bảng <b class="mono">cau_hinh_so_sanh</b> trong Supabase.<br>
+        Hãy chạy file <b class="mono">sql_cau_hinh_so_sanh.sql</b> (kèm theo bản cập nhật này)
+        trong <b>Supabase → SQL Editor</b>, sau đó bấm lại mục "Kỳ báo cáo".
+      </div>
     </div>`;
+  }
+  // Chỉ cho chọn các kỳ ĐANG HIỂN THỊ trong bảng nhập (dua_vao_bieu_bao_cao = true)
+  const kyHien = dsKy.filter(k => k.dua_vao_bieu_bao_cao)
+    .sort((a,b) => (Number(a.thu_tu_hien_thi)||0) - (Number(b.thu_tu_hien_thi)||0));
+  const opts = kyHien.map(k =>
+    `<option value="${k.ky_bao_cao}">${k.ky_bao_cao_tieu_de || k.ky_bao_cao}</option>`).join('');
+
+  const rows = dsSoSanh.map(c => `<tr>
+    <td style="text-align:center;padding:4px 8px">
+      <input class="num-inp" type="number" min="1" value="${c.thu_tu||''}" placeholder="--" style="width:70px"
+        onchange="capNhatSoSanhField(${c.id},'thu_tu',this.value===''?null:parseInt(this.value))">
+    </td>
+    <td>${tenKyAdmin(c.ky_tu)} <span class="mono" style="color:var(--g4);font-size:11px">(${c.ky_tu})</span></td>
+    <td style="text-align:center;font-weight:700;color:var(--blue)">÷</td>
+    <td>${tenKyAdmin(c.ky_mau)} <span class="mono" style="color:var(--g4);font-size:11px">(${c.ky_mau})</span></td>
+    <td style="text-align:center;padding:4px 8px">
+      <input class="num-inp" type="number" min="60" max="400" value="${c.do_rong_cot||128}" placeholder="128"
+        onchange="capNhatSoSanhField(${c.id},'do_rong_cot',parseInt(this.value)||128)">
+    </td>
+    <td style="text-align:center">
+      <label class="sw-wrap" style="justify-content:center">
+        <label class="sw"><input type="checkbox" ${c.hien_thi?'checked':''}
+          onchange="capNhatSoSanhField(${c.id},'hien_thi',this.checked)">
+          <span class="sw-slider"></span></label>
+        <span class="sw-lbl" style="font-size:10px">${c.hien_thi?'✅':'⬜'}</span>
+      </label>
+    </td>
+    <td style="white-space:nowrap">
+      <button class="btn danger" style="padding:4px 8px" onclick="xoaSoSanhAdmin(${c.id})">🗑</button>
+    </td>
+  </tr>`).join('');
+
+  return `<div class="card" style="margin-top:12px">
+    <div class="card-head">
+      <h3>➗ Cột so sánh trong bảng nhập liệu <span style="font-size:12px;font-weight:400;color:var(--g4)">(Kỳ A ÷ Kỳ B × 100% — chỉ đọc, tự tính khi nhập)</span></h3>
+    </div>
+    <div class="filter-bar" style="flex-wrap:wrap;gap:8px">
+      <label>Kỳ A (tử số)</label>
+      <select class="inp" id="ss-tu" style="width:auto;min-width:180px">${opts||'<option value="">Chưa có kỳ hiển thị</option>'}</select>
+      <label style="font-weight:700;color:var(--blue)">÷</label>
+      <label>Kỳ B (mẫu số)</label>
+      <select class="inp" id="ss-mau" style="width:auto;min-width:180px">${opts||'<option value="">Chưa có kỳ hiển thị</option>'}</select>
+      <label>× 100% &nbsp; Thứ tự</label>
+      <input class="num-inp" type="number" id="ss-thutu" min="1" placeholder="--" style="width:70px">
+      <button class="btn primary" onclick="themSoSanhAdmin()">➕ Thêm cột so sánh</button>
+    </div>
+    <div style="padding:0 14px 6px;font-size:11px;color:var(--g4);font-style:italic">
+      Chỉ chọn được các kỳ đang bật "Hiện" (đưa vào biểu). Cột so sánh chỉ xuất hiện trong bảng nhập
+      khi CẢ HAI kỳ đều đang hiển thị. Nếu không thấy kỳ cần chọn, hãy mở rộng bộ lọc năm phía trên.
+    </div>
+    <div style="overflow-x:auto">
+      <table class="dt">
+        <thead><tr>
+          <th style="width:80px">Thứ tự</th><th>Kỳ A (tử số)</th><th style="width:36px"></th>
+          <th>Kỳ B (mẫu số)</th><th style="width:90px">Rộng(px)</th>
+          <th style="width:70px;text-align:center">Hiện</th><th style="width:60px"></th>
+        </tr></thead>
+        <tbody>${rows||'<tr><td colspan="7" style="text-align:center;padding:16px;color:var(--g4)">Chưa có cột so sánh nào</td></tr>'}</tbody>
+      </table>
+    </div>
+  </div>`;
+}
+
+async function themSoSanhAdmin() {
+  const tu  = document.getElementById('ss-tu')?.value;
+  const mau = document.getElementById('ss-mau')?.value;
+  const thutu = document.getElementById('ss-thutu')?.value;
+  if (!tu || !mau) { toast('Hãy chọn đủ Kỳ A và Kỳ B.', 'er'); return; }
+  if (tu === mau)  { toast('Kỳ A và Kỳ B phải khác nhau.', 'er'); return; }
+  if (dsSoSanh.some(c => c.ky_tu === tu && c.ky_mau === mau)) { toast('Cột so sánh này đã có.', 'er'); return; }
+  try {
+    await DB.themSoSanh({ ky_tu: tu, ky_mau: mau, thu_tu: thutu ? parseInt(thutu) : null, hien_thi: true, do_rong_cot: 128 });
+    toast('✅ Đã thêm cột so sánh!');
+    await hienKyBaoCao();
+  } catch(e) { toast('Lỗi: ' + e.message, 'er'); }
+}
+
+async function capNhatSoSanhField(id, col, val) {
+  const u = {}; u[col] = val;
+  try {
+    await DB.suaSoSanh(id, u);
+    toast('✅ Đã cập nhật!');
+    const c = dsSoSanh.find(x => x.id === id);
+    if (c) c[col] = val;
+    if (col === 'hien_thi') renderKyBaoCao();
+  } catch(e) { toast('Lỗi: ' + e.message, 'er'); }
+}
+
+function xoaSoSanhAdmin(id) {
+  const c = dsSoSanh.find(x => x.id === id);
+  UTILS.xacNhan('Xóa cột so sánh',
+    `Xóa cột <b>${tenKyAdmin(c?.ky_tu||'')} ÷ ${tenKyAdmin(c?.ky_mau||'')} × 100%</b>?<br>Chỉ xóa cấu hình cột, không ảnh hưởng số liệu.`,
+    async () => {
+      try {
+        await DB.xoaSoSanh(id);
+        toast('✅ Đã xóa cột so sánh!');
+        await hienKyBaoCao();
+      } catch(e) { toast('Lỗi: ' + e.message, 'er'); }
+    });
 }
 
 function doSort(col) {
