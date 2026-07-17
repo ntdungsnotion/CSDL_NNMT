@@ -960,7 +960,101 @@ async function hienQuanLyBang() {
   try { dsGS = await DB.layGSheet(false); } catch(e) { dsGS = null; }
   renderQuanLyBang();
   document.getElementById('content').insertAdjacentHTML('beforeend', renderGSheetCard());
+  document.getElementById('content').insertAdjacentHTML('beforeend', renderGanGSCard());
 }
+
+// ── GẮN GOOGLE SHEET VÀO BẢNG BÁO CÁO (danh_sach_bang.gsheet_url) ──
+// Bảng được gắn sheet sẽ hiển thị sheet thay cho bảng nhập liệu.
+// Lưu link GỐC người dùng dán; hệ thống tự chuyển sang dạng nhúng khi hiển thị.
+function renderGanGSCard() {
+  const coUrl   = dsBang.filter(b => b.gsheet_url);
+  const chuaUrl = dsBang.filter(b => !b.gsheet_url);
+  const rows = coUrl.map(b => {
+    const opts = `<option value="">— Gỡ khỏi bảng —</option>` +
+      dsBang.map(x => `<option value="${x.bang}" ${x.bang===b.bang?'selected':''}>${x.ten_bang}</option>`).join('');
+    return `<tr>
+      <td style="min-width:150px"><strong>${b.ten_bang}</strong></td>
+      <td style="min-width:220px;max-width:340px">
+        <span class="mono" style="display:block;font-size:11px;color:var(--g4);white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${b.gsheet_url}">${b.gsheet_url}</span></td>
+      <td style="min-width:170px">
+        <select class="ct-sel" style="font-size:12px;padding:5px 8px" onchange="GSB.doi('${b.bang}', this.value)">${opts}</select></td>
+      <td style="white-space:nowrap;text-align:right">
+        <a href="${b.gsheet_url}" target="_blank" rel="noopener" class="btn ghost" style="padding:4px 8px;text-decoration:none">🔗</a>
+        <button class="btn danger" style="padding:4px 8px;margin-left:3px" onclick="GSB.go('${b.bang}', this.dataset.ten)" data-ten="${(b.ten_bang||'').replace(/"/g,'&quot;')}">🗑</button></td>
+    </tr>`;
+  }).join('');
+  return `<div class="card" style="margin-top:12px">
+    <div class="card-head">
+      <h3>🔗 Gắn Google Sheet vào bảng báo cáo <span style="font-size:12px;font-weight:400;color:var(--g4)">(${coUrl.length} bảng đang gắn)</span></h3>
+      <button class="btn primary" onclick="GSB.them()">+ Gắn Sheet vào bảng</button>
+    </div>
+    <div style="overflow-x:auto">
+      <table class="dt">
+        <thead><tr><th>Bảng báo cáo</th><th>Link Google Sheet</th><th>Chuyển sang bảng</th><th></th></tr></thead>
+        <tbody>${rows || `<tr><td colspan="4" style="text-align:center;padding:18px;color:var(--g4)">Chưa có bảng nào gắn Google Sheet.</td></tr>`}</tbody>
+      </table>
+    </div>
+    <div style="font-size:11px;color:var(--g4);padding:8px 16px 12px">
+      💡 Bảng được gắn sheet sẽ <strong>hiển thị sheet thay cho bảng nhập liệu</strong> ở trang nhập và trang xem.
+      Dán link dạng nào cũng được (<code>/edit</code>, chia sẻ, <code>pubhtml</code>…) — hệ thống tự chuyển sang dạng nhúng.
+      Sheet phải chia sẻ công khai (Anyone with the link → Viewer).
+      ${chuaUrl.length===0?'<br>⚠️ Mọi bảng đều đã gắn sheet — gỡ bớt trước khi gắn mới.':''}
+    </div>
+  </div>`;
+}
+
+const GSB = {
+  them(){
+    const chuaUrl = dsBang.filter(b => !b.gsheet_url);
+    if(!chuaUrl.length){ toast('Mọi bảng đều đã gắn sheet. Gỡ bớt trước.','er'); return; }
+    UTILS.xacNhan('🔗 Gắn Google Sheet vào bảng',
+      `<div style="display:flex;flex-direction:column;gap:10px;margin-top:10px;text-align:left">
+        <div><label style="font-size:11px;font-weight:700;color:var(--g5);display:block;margin-bottom:4px">LINK GOOGLE SHEET *</label>
+          <input id="gsb-url" type="text" placeholder="Dán link Google Sheet (dạng nào cũng được)…"
+            style="width:100%;padding:8px 10px;border:1.5px solid var(--g2);border-radius:7px;font-family:monospace;font-size:12px;outline:none"></div>
+        <div><label style="font-size:11px;font-weight:700;color:var(--g5);display:block;margin-bottom:4px">GẮN VÀO BẢNG *</label>
+          <select id="gsb-bang" style="width:100%;padding:8px 10px;border:1.5px solid var(--g2);border-radius:7px;font-family:var(--font);font-size:13px;outline:none">
+            <option value="">— Chọn bảng —</option>
+            ${chuaUrl.map(b=>`<option value="${b.bang}">${b.ten_bang}</option>`).join('')}
+          </select></div>
+        <div style="font-size:11px;color:var(--g4)">💡 Sheet phải chia sẻ công khai (Anyone with the link → Viewer).</div>
+      </div>`,
+      async ()=>{
+        const url  = document.getElementById('gsb-url')?.value.trim();
+        const bang = document.getElementById('gsb-bang')?.value;
+        if(!url || !bang){ toast('Vui lòng dán link và chọn bảng!','er'); return; }
+        if(!url.includes('docs.google.com/spreadsheets')){ toast('Link phải là Google Sheets.','er'); return; }
+        try{
+          await DB.capNhatBang(bang, { gsheet_url: url });   // lưu link GỐC
+          toast('✅ Đã gắn Google Sheet!');
+          await hienQuanLyBang();
+        }catch(e){ toast('Lỗi: '+e.message,'er'); }
+      });
+  },
+  async doi(bangCu, bangMoi){
+    const b = dsBang.find(x=>x.bang===bangCu);
+    const url = b?.gsheet_url;
+    if(bangMoi===bangCu) return;
+    try{
+      await DB.capNhatBang(bangCu, { gsheet_url: null });
+      if(bangMoi){
+        await DB.capNhatBang(bangMoi, { gsheet_url: url });
+        toast('✅ Đã chuyển sheet sang bảng khác!');
+      }else{
+        toast('✅ Đã gỡ sheet khỏi bảng!');
+      }
+      await hienQuanLyBang();
+    }catch(e){ toast('Lỗi: '+e.message,'er'); await hienQuanLyBang(); }
+  },
+  go(bang, ten){
+    UTILS.xacNhan('🗑 Gỡ Google Sheet', `Gỡ link Google Sheet khỏi bảng <strong>${ten}</strong>?<br>
+      <span style="font-size:12px;color:var(--g4)">(Bảng sẽ quay lại chế độ nhập liệu bình thường; sheet gốc không bị ảnh hưởng)</span>`,
+      async ()=>{
+        try{ await DB.capNhatBang(bang, { gsheet_url: null }); toast('✅ Đã gỡ!'); await hienQuanLyBang(); }
+        catch(e){ toast('Lỗi: '+e.message,'er'); }
+      });
+  },
+};
 
 // ── QUẢN LÝ GOOGLE SHEET ──
 let dsGS = [];
