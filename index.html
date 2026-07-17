@@ -36,6 +36,8 @@ body{font-family:var(--font);font-size:14px;color:var(--dk);background:var(--g1)
   .tw{overflow-x:auto;max-height:none!important;-webkit-overflow-scrolling:touch}
   table.t th.th-n,table.t td.td-n{position:static!important}
   .hamburger{display:flex!important}
+  .only-m{display:inline-flex!important}
+  .only-d{display:none!important}
   /* Toast / modal / thanh lưu tràn ngang cho dễ chạm */
   .toast{left:8px;right:8px;top:54px}
   .mbox{min-width:unset;width:94vw;padding:18px}
@@ -169,7 +171,9 @@ table.t td.td-u{text-align:center;font-size:11px;color:var(--g4)}
 .th-id{display:none!important}
 .th-ng{display:none!important}
 .td-ng{display:none!important}
-.hamburger{display:none;background:none;border:none;color:white;font-size:20px;cursor:pointer;padding:4px 8px;margin-right:8px}
+.hamburger{display:none;background:var(--xp);border:none;color:var(--xd);font-size:20px;cursor:pointer;padding:5px 12px;margin-right:8px;border-radius:8px}
+.only-m{display:none}
+@media(min-width:769px){.sb-overlay{display:none!important}}
 .tieu-de-bang.hidden{display:none}
 .gs-wrap{overflow:hidden;border-radius:var(--r);box-shadow:0 1px 4px rgba(0,0,0,.08);background:white;height:calc(100vh - 130px);min-height:400px}
 .gs-wrap iframe{width:100%;height:calc(100% + 90px);margin-top:-90px;border:none;display:block}
@@ -296,7 +300,8 @@ table.t tr.tr-locked td.td-n{background:#fafafa;color:var(--g4)}
         <div class="welcome-card">
           <div class="welcome-ico">📋</div>
           <h2>Đơn vị chọn bảng báo cáo ở thanh bên trái để bắt đầu nhập liệu</h2>
-          <div class="arrow-hint">← Danh sách bảng báo cáo nằm bên trái</div>
+          <div class="arrow-hint only-d">← Danh sách bảng báo cáo nằm bên trái</div>
+          <button class="arrow-hint only-m" style="border:none;cursor:pointer;font-family:var(--font)" onclick="APP.toggleSidebar()">📋 Bấm để mở danh sách bảng báo cáo</button>
         </div>
         <div class="welcome-sep">HOẶC</div>
         <div class="welcome-card card2">
@@ -518,11 +523,17 @@ const APP={
     nav.innerHTML=html;
   },
 
-  // Chuyển URL Google Sheet sang dạng nhúng được (htmlview)
+  // Chuyển MỌI dạng link Google Sheet → dạng nhúng được trong iframe.
+  // Đã là dạng nhúng (pubhtml/htmlview/preview/output=html) → giữ nguyên.
+  // Còn lại: rút fileId (kể cả /d/e/…) → /htmlview, giữ gid (tab) nếu có.
   toEmbedUrl(url){
     if(!url)return'';
-    if(url.includes('/pub')||url.includes('output=html')||url.includes('htmlview'))return url;
-    return url.replace(/\/edit.*$/,'/htmlview');
+    url=String(url).trim();
+    if(/\/pubhtml|output=html|\/htmlview|\/preview/.test(url)) return url;
+    const gid=(url.match(/[#?&]gid=(\d+)/)||[])[1];
+    const m=url.match(/\/spreadsheets\/d\/(e\/)?([\w-]+)/);
+    if(m) return `https://docs.google.com/spreadsheets/d/${m[1]||''}${m[2]}/htmlview${gid?`?gid=${gid}#gid=${gid}`:''}`;
+    return url;
   },
 
   moGSheet(id){
@@ -602,8 +613,9 @@ const APP={
   _moGSheet(url){
     if(!url)return;
     const twArea=UTILS.el('tw-area');
-    const finalUrl=url.trim();
-    twArea.innerHTML=`<div class="gs-wrap"><iframe src="${finalUrl}" allowfullscreen></iframe></div>`;
+    const finalUrl=this.toEmbedUrl(url);   // tự chuyển mọi dạng link sang dạng nhúng
+    twArea.innerHTML=`<div style="text-align:right;margin-bottom:6px"><a href="${url.trim()}" target="_blank" rel="noopener" style="font-size:12px;color:var(--xc);font-weight:600;text-decoration:none">🔗 Mở trong Google Sheet</a></div>
+      <div class="gs-wrap"><iframe src="${finalUrl}" allowfullscreen loading="lazy"></iframe></div>`;
   },
 
   async guiBaoCao(){

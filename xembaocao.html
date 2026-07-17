@@ -161,7 +161,9 @@ table.t tr:not(.tr-h):hover td{background:#f0fdf4}table.t tr:not(.tr-h):hover td
 .toast.on{transform:translateX(0)}.toast.ok{background:#1b5e20}.toast.er{background:var(--red)}
 
 /* ── Mobile: sidebar off-canvas + overlay ── */
-.hamburger{display:none;background:none;border:none;color:var(--xd);font-size:20px;cursor:pointer;padding:4px 8px;margin-right:6px}
+.hamburger{display:none;background:var(--xp);border:none;color:var(--xd);font-size:20px;cursor:pointer;padding:5px 12px;margin-right:6px;border-radius:8px}
+.only-m{display:none}
+@media(min-width:769px){.sb-overlay{display:none!important}}
 .sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:95}
 .sb-overlay.on{display:block}
 @media(max-width:768px){
@@ -172,6 +174,8 @@ table.t tr:not(.tr-h):hover td{background:#f0fdf4}table.t tr:not(.tr-h):hover td
       box-shadow:4px 0 20px rgba(0,0,0,.25)}
   .sb.open{transform:translateX(0)}
   .hamburger{display:flex;align-items:center;justify-content:center}
+  .only-m{display:inline-flex!important}
+  .only-d{display:none!important}
   .main{width:100%;overflow:visible}
   .topbar{position:sticky;top:0;z-index:90;padding:0 10px}
   .topbar-t{font-size:13px}
@@ -224,7 +228,8 @@ table.t tr:not(.tr-h):hover td{background:#f0fdf4}table.t tr:not(.tr-h):hover td
           <div class="welcome-ico">📊</div>
           <h2>Chọn một bảng báo cáo để bắt đầu</h2>
           <p>Danh sách các bảng bạn được phép xem nằm ở thanh bên trái.<br>Bấm vào một bảng để chọn kỳ và so sánh số liệu.</p>
-          <div class="welcome-hint">👈 Chọn bảng ở thanh bên trái</div>
+          <div class="welcome-hint only-d">👈 Chọn bảng ở thanh bên trái</div>
+          <button class="welcome-hint only-m" style="border:none;cursor:pointer;font-family:var(--font)" onclick="XEM.toggleSidebar()">📋 Bấm để mở danh sách bảng</button>
         </div>
       </div>
     </div>
@@ -338,6 +343,17 @@ const XEM = {
     UTILS.el('sb')?.classList.toggle('open');
     UTILS.el('sb-overlay')?.classList.toggle('on');
   },
+
+  // Chuyển mọi dạng link Google Sheet → dạng nhúng được (giữ nguyên nếu đã là dạng nhúng)
+  _gsEmbed(url){
+    if(!url)return'';
+    url=String(url).trim();
+    if(/\/pubhtml|output=html|\/htmlview|\/preview/.test(url)) return url;
+    const gid=(url.match(/[#?&]gid=(\d+)/)||[])[1];
+    const m=url.match(/\/spreadsheets\/d\/(e\/)?([\w-]+)/);
+    if(m) return `https://docs.google.com/spreadsheets/d/${m[1]||''}${m[2]}/htmlview${gid?`?gid=${gid}#gid=${gid}`:''}`;
+    return url;
+  },
   closeSidebar(){
     UTILS.el('sb')?.classList.remove('open');
     UTILS.el('sb-overlay')?.classList.remove('on');
@@ -357,8 +373,9 @@ const XEM = {
     if(b?.gsheet_url){
       UTILS.el('content').innerHTML = `
         <div class="empty" style="padding:24px"><span class="i">📈</span>
-          <span>Bảng này hiển thị bằng Google Sheet, không có số liệu trong cơ sở dữ liệu để so sánh.</span></div>
-        <div class="gs-wrap"><iframe src="${b.gsheet_url.trim()}" allowfullscreen></iframe></div>`;
+          <span>Bảng này hiển thị bằng Google Sheet, không có số liệu trong cơ sở dữ liệu để so sánh.</span>
+          <a href="${b.gsheet_url.trim()}" target="_blank" rel="noopener" style="font-size:12px;color:var(--xc);font-weight:600">🔗 Mở trong Google Sheet</a></div>
+        <div class="gs-wrap"><iframe src="${this._gsEmbed(b.gsheet_url)}" allowfullscreen loading="lazy"></iframe></div>`;
       return;
     }
 
