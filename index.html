@@ -14,18 +14,37 @@
 :root{--xd:#1b4332;--xc:#2d6a4f;--xn:#52b788;--xp:#d8f3dc;--w:#fff;--g1:#f4f6f5;--g2:#e4e9e6;--g3:#c5d0c9;--g4:#7a9485;--g5:#3d5247;--dk:#1a2e22;--red:#c0392b;--sw:230px;--font:'Be Vietnam Pro',sans-serif;--mono:'JetBrains Mono',monospace;--r:7px;}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 body{font-family:var(--font);font-size:14px;color:var(--dk);background:var(--g1);height:100vh;overflow:hidden}
+/* ── Lớp phủ khi mở sidebar trên mobile ── */
+.sb-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:95}
+.sb-overlay.on{display:block}
 @media(max-width:768px){
+  /* Đăng nhập: xếp dọc, ẩn panel phải */
+  .lbox{grid-template-columns:1fr;height:auto;max-height:95vh}
+  .lr{display:none}
+  /* Bố cục app */
   body{overflow:auto;height:auto}
   #app{height:auto!important;min-height:100vh}
-  #app.on{flex-direction:column}
-  .sb{width:100%!important;display:none;z-index:100;position:relative}
-  .sb.open{display:flex}
-  .main{flex:1;overflow:visible}
-  .topbar{position:sticky;top:0;z-index:90}
+  /* Sidebar off-canvas: trượt từ trái, có animation */
+  .sb{position:fixed;top:0;left:0;height:100%;width:min(var(--sw),84vw)!important;z-index:100;
+      transform:translateX(-105%);transition:transform .28s cubic-bezier(.4,0,.2,1);
+      box-shadow:4px 0 20px rgba(0,0,0,.25)}
+  .sb.open{transform:translateX(0)}
+  .main{flex:1;width:100%;overflow:visible}
+  .topbar{position:sticky;top:0;z-index:90;padding:0 10px}
+  .topbar-t{font-size:13px}
   .content{overflow:visible;padding:8px}
-  .tw{overflow-x:auto;max-height:none!important}
+  .tw{overflow-x:auto;max-height:none!important;-webkit-overflow-scrolling:touch}
   table.t th.th-n,table.t td.td-n{position:static!important}
   .hamburger{display:flex!important}
+  /* Toast / modal / thanh lưu tràn ngang cho dễ chạm */
+  .toast{left:8px;right:8px;top:54px}
+  .mbox{min-width:unset;width:94vw;padding:18px}
+  .sbar{left:8px;right:8px;bottom:8px;border-radius:10px}
+  /* Màn hình chào mừng gọn lại */
+  .welcome{min-height:auto;padding:20px 10px;gap:14px}
+  .welcome-card{padding:26px 20px}
+  .welcome-card h2{font-size:17px}
+  .btn-xembc{width:100%;justify-content:center;padding:14px 20px;font-size:15px}
 }
 #login{position:fixed;inset:0;background:linear-gradient(140deg,var(--xd),#2d6a4f 55%,#40916c);display:flex;align-items:center;justify-content:center;z-index:999;padding:16px}
 .lbox{background:white;border-radius:14px;box-shadow:0 8px 32px rgba(0,0,0,.22);width:960px;max-width:98vw;height:580px;max-height:95vh;display:grid;grid-template-columns:2fr 3fr;overflow:hidden;animation:fu .35s ease}
@@ -154,6 +173,14 @@ table.t td.td-u{text-align:center;font-size:11px;color:var(--g4)}
 .tieu-de-bang.hidden{display:none}
 .gs-wrap{overflow:hidden;border-radius:var(--r);box-shadow:0 1px 4px rgba(0,0,0,.08);background:white;height:calc(100vh - 130px);min-height:400px}
 .gs-wrap iframe{width:100%;height:calc(100% + 90px);margin-top:-90px;border:none;display:block}
+/* ── Thẻ Google Sheet (danh sách riêng) ── */
+.gs-card{background:white;border-radius:var(--r);box-shadow:0 1px 4px rgba(0,0,0,.08);overflow:hidden}
+.gs-card-head{padding:10px 14px;border-bottom:1px solid var(--g2);display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+.gs-card-title{font-size:13px;font-weight:700;color:var(--xd)}
+.gs-card-desc{font-size:11px;color:var(--g4);margin-top:1px}
+.gs-card-head a{color:var(--xc);font-size:11px;font-weight:600;text-decoration:none;flex-shrink:0}
+.gs-card-head a:hover{text-decoration:underline}
+.gs-iframe{width:100%;border:none;display:block;min-height:420px}
 .btn-sm.send{background:#1b4332;color:white}.btn-sm.send:hover{opacity:.85}
 .btn-sm.send.done{background:var(--g3);color:var(--g5);cursor:default}
 
@@ -176,6 +203,21 @@ table.t tr.tr-locked td.td-n{background:#fafafa;color:var(--g4)}
 .btn-p{padding:8px 18px;background:var(--xc);color:white;border:none;border-radius:6px;font-family:var(--font);font-size:13px;font-weight:600;cursor:pointer}
 .btn-g{padding:8px 14px;background:var(--g2);color:var(--g5);border:none;border-radius:6px;font-family:var(--font);font-size:13px;cursor:pointer}
 .empty{display:flex;flex-direction:column;align-items:center;padding:50px;color:var(--g4);gap:8px;font-size:13px}.empty .i{font-size:34px}
+/* ── Màn hình chào mừng (landing) ── */
+.welcome{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:calc(100vh - 130px);gap:18px;padding:30px 20px;text-align:center}
+.welcome-card{background:white;border-radius:16px;box-shadow:0 4px 24px rgba(27,67,50,.10);border:1px solid var(--g2);padding:38px 46px;max-width:560px;width:100%;position:relative;overflow:hidden}
+.welcome-card::before{content:"";position:absolute;top:0;left:0;right:0;height:5px;background:linear-gradient(90deg,var(--xd),var(--xn),var(--xc))}
+.welcome-ico{width:74px;height:74px;margin:6px auto 4px;border-radius:20px;background:linear-gradient(135deg,var(--xp),#b7e4c7);display:flex;align-items:center;justify-content:center;font-size:38px;box-shadow:0 4px 14px rgba(82,183,136,.28)}
+.welcome-card h2{font-size:21px;font-weight:700;color:var(--xd);line-height:1.35;margin-top:6px}
+.welcome-card .arrow-hint{display:inline-flex;align-items:center;gap:7px;margin-top:12px;font-size:13px;font-weight:600;color:var(--xc);background:var(--xp);padding:7px 15px;border-radius:20px}
+.welcome-sep{display:flex;align-items:center;gap:14px;width:420px;max-width:80vw;margin:8px 0;color:var(--g4);font-size:14px;font-weight:700;letter-spacing:2px}
+.welcome-sep::before,.welcome-sep::after{content:"";flex:1;height:2px;background:var(--g2);border-radius:2px}
+.welcome-card.card2{padding:30px 46px}
+.welcome-card.card2 .ico2{width:60px;height:60px;font-size:30px;border-radius:16px;margin-bottom:12px}
+.btn-xembc{display:inline-flex;align-items:center;gap:10px;padding:15px 44px;background:linear-gradient(135deg,var(--xd),var(--xc));color:white;border:none;border-radius:12px;font-family:var(--font);font-size:17px;font-weight:700;cursor:pointer;transition:.2s;box-shadow:0 4px 16px rgba(27,67,50,.24)}
+.btn-xembc:hover{transform:translateY(-2px);box-shadow:0 7px 22px rgba(27,67,50,.32)}
+.btn-xembc .ic{font-size:21px}
+.btn-xembc-sub{font-size:13px;color:var(--g4);margin-top:12px}
 .spin{width:17px;height:17px;border:2px solid var(--g2);border-top-color:var(--xc);border-radius:50%;animation:sp .6s linear infinite;display:inline-block}
 @keyframes sp{to{transform:rotate(360deg)}}.loading{display:flex;align-items:center;justify-content:center;gap:8px;padding:38px;color:var(--g4);font-size:13px}
 </style>
@@ -225,8 +267,10 @@ table.t tr.tr-locked td.td-n{background:#fafafa;color:var(--g4)}
   </div>
 </div>
 
+<div id="sb-overlay" class="sb-overlay" onclick="APP.closeSidebar()"></div>
+
 <div id="app">
-  <aside class="sb">
+  <aside class="sb" id="sb">
     <div class="sb-head">
       <div class="sb-logo"><span class="i">🌾</span>
         <div class="t">Báo cáo định kỳ<br><span style="opacity:.55;font-weight:400">Sở NN và MT</span></div>
@@ -235,6 +279,7 @@ table.t tr.tr-locked td.td-n{background:#fafafa;color:var(--g4)}
     </div>
     <nav class="sb-nav" id="sb-nav"></nav>
     <div class="sb-foot">
+      <button class="sb-btn" style="background:rgba(82,183,136,.16);color:#95d5b2" onclick="APP.moXemBaoCao()">📊 Xem báo cáo</button>
       <button class="sb-btn adm" onclick="APP.moAdmin()">⚙️ Trang quản trị</button>
       <button class="sb-btn" onclick="APP.moModalPass()">🔐 Đổi mật khẩu</button>
       <button class="sb-btn" onclick="APP.dangXuat()">↩ Đăng xuất</button>
@@ -244,9 +289,22 @@ table.t tr.tr-locked td.td-n{background:#fafafa;color:var(--g4)}
     <div class="topbar">
       <button class="hamburger" id="hamburger" onclick="APP.toggleSidebar()">☰</button>
       <div class="topbar-t" id="topbar-t">Chọn bảng báo cáo bên trái<span class="topbar-s" id="topbar-s"></span></div>
+      <div id="topbar-actions" style="display:flex;align-items:center;gap:6px;flex-shrink:0"></div>
     </div>
     <div class="content" id="content">
-      <div class="empty"><span class="i">📋</span><span>Chọn bảng báo cáo bên trái để bắt đầu nhập liệu</span></div>
+      <div class="welcome">
+        <div class="welcome-card">
+          <div class="welcome-ico">📋</div>
+          <h2>Đơn vị chọn bảng báo cáo ở thanh bên trái để bắt đầu nhập liệu</h2>
+          <div class="arrow-hint">← Danh sách bảng báo cáo nằm bên trái</div>
+        </div>
+        <div class="welcome-sep">HOẶC</div>
+        <div class="welcome-card card2">
+          <div class="welcome-ico ico2">📊</div>
+          <button class="btn-xembc" onclick="APP.moXemBaoCao()"><span class="ic">📊</span> Xem báo cáo</button>
+          <div class="btn-xembc-sub">Xem, tra cứu và so sánh số liệu giữa các kỳ báo cáo</div>
+        </div>
+      </div>
     </div>
   </main>
 </div>
@@ -432,54 +490,97 @@ const APP={
     const roleLabel=this.user.vai_tro==='admin'?'⚙️ Quản trị viên':'✏️ Người nhập liệu';
     const hoTenSB=this.user._nguoi_nhap&&this.user._nguoi_nhap!==this.user.don_vi?this.user._nguoi_nhap:'';
     UTILS.el('sb-role').textContent=hoTenSB?hoTenSB+' · '+roleLabel:roleLabel;
-    await Promise.all([this.loadBang(),this.loadKy()]);
+    await Promise.all([this.loadBang(),this.loadKy(),this.loadGSheet()]);
     this.buildMenu();
   },
 
   async loadBang(){this.dsBang=this.user.vai_tro==='admin'?await DB.layTatCaBang():await DB.layBangDuocPhep(this.user.id)},
   async loadKy(){this.dsKy=await DB.layKyHienThi()},
+  dsGSheet:[],
+  async loadGSheet(){
+    // Bảng danh_sach_gsheet có thể chưa tồn tại → coi như không có sheet nào
+    try{ this.dsGSheet = await DB.layGSheet(true); }catch(e){ this.dsGSheet=[]; }
+  },
 
   buildMenu(){
     const nav=UTILS.el('sb-nav');
-    if(!this.dsBang.length){nav.innerHTML=`<div style="padding:10px;color:rgba(255,255,255,.4);font-size:12px">Chưa được phân công bảng nào.</div>`;return}
-    nav.innerHTML=`<div class="nlbl">📊 Bảng báo cáo</div>`+
-      this.dsBang.map(b=>`<div class="ni" id="ni-${b.bang}" onclick="APP.moNhap('${b.bang}')"><span class="i">📋</span><span>${b.ten_bang}</span></div>`).join('');
+    const coBang=this.dsBang.length>0, coGS=this.dsGSheet.length>0;
+    if(!coBang&&!coGS){nav.innerHTML=`<div style="padding:10px;color:rgba(255,255,255,.4);font-size:12px">Chưa được phân công bảng nào.</div>`;return}
+    let html='';
+    if(coBang){
+      html+=`<div class="nlbl">📊 Bảng báo cáo</div>`+
+        this.dsBang.map(b=>`<div class="ni" id="ni-${b.bang}" onclick="APP.moNhap('${b.bang}')"><span class="i">📋</span><span>${b.ten_bang}</span></div>`).join('');
+    }
+    if(coGS){
+      html+=`<div class="nlbl" style="margin-top:${coBang?'10px':'0'}">📈 Dữ liệu Google Sheet</div>`+
+        this.dsGSheet.map(s=>`<div class="ni" id="ni-gs-${s.id}" onclick="APP.moGSheet(${s.id})"><span class="i">📈</span><span>${s.ten_sheet}</span></div>`).join('');
+    }
+    nav.innerHTML=html;
+  },
+
+  // Chuyển URL Google Sheet sang dạng nhúng được (htmlview)
+  toEmbedUrl(url){
+    if(!url)return'';
+    if(url.includes('/pub')||url.includes('output=html')||url.includes('htmlview'))return url;
+    return url.replace(/\/edit.*$/,'/htmlview');
+  },
+
+  moGSheet(id){
+    this.closeSidebar();
+    this.changes={};UTILS.tat('sbar');
+    document.querySelectorAll('.ni').forEach(e=>e.classList.remove('act'));
+    UTILS.el('ni-gs-'+id)?.classList.add('act');
+    const s=this.dsGSheet.find(x=>x.id===id);
+    UTILS.el('topbar-t').innerHTML=`📈 ${s?.ten_sheet||'Google Sheet'}<span class="topbar-s">${s?.mo_ta?' / '+s.mo_ta:''}</span>`;
+    const ta=UTILS.el('topbar-actions'); if(ta) ta.innerHTML='';
+    const h=s?.chieu_cao||520;
+    UTILS.el('content').innerHTML=`
+      <div class="gs-card">
+        <div class="gs-card-head">
+          <div>
+            <div class="gs-card-title">📈 ${s?.ten_sheet||''}</div>
+            ${s?.mo_ta?`<div class="gs-card-desc">${s.mo_ta}</div>`:''}
+          </div>
+          <a href="${s?.embed_url||''}" target="_blank" rel="noopener">🔗 Mở trong Google Sheet</a>
+        </div>
+        <iframe class="gs-iframe" src="${this.toEmbedUrl(s?.embed_url||'')}" style="height:${h}px"
+          allowfullscreen loading="lazy" title="${s?.ten_sheet||''}"></iframe>
+      </div>`;
   },
 
   async moNhap(maBang){
-    this.bangHT=maBang;this.changes={};UTILS.tat('sbar');
+    this.closeSidebar();
+    this.bangHT=maBang;this.changes={};UTILS.tat('sbar');const _bl1=UTILS.el('btn-luu-top');if(_bl1){_bl1.style.background='#c5d0c9';_bl1.style.color='#3d5247';_bl1.style.cursor='default';}
     document.querySelectorAll('.ni').forEach(e=>e.classList.remove('act'));
     UTILS.el('ni-'+maBang)?.classList.add('act');
     const b=this.dsBang.find(x=>x.bang===maBang);
     UTILS.el('topbar-t').innerHTML=`${b?.ten_bang||maBang}<span class="topbar-s"> / ${b?.don_vi_bao_cao||''}</span>`;
+
     if(!this.dsKy.length){
       UTILS.el('content').innerHTML=`<div class="empty"><span class="i">📅</span><span>Chưa có kỳ báo cáo nào được mở.<br>Vào trang quản trị để thêm kỳ báo cáo.</span></div>`;return;
     }
     const ct0=await DB.layChiTieuTheoBang(maBang);
     const daNhap=ct0.filter(c=>!c.la_tieu_de);
     const tatCaKhoa=daNhap.length>0&&daNhap.every(c=>c.cho_phep_nhap===false);
-
     const gsUrl=b?.gsheet_url||'';
     const coGSheet=!!gsUrl;
+    const _ta=UTILS.el('topbar-actions');
+    if(_ta){
+      let _btnExcel='';
+      if(!coGSheet){
+        _btnExcel='<button class="btn-sm gr" onclick="APP.xuatExcel(false)">📥 Excel mẫu trống</button>'
+          +'<button class="btn-sm gr" onclick="APP.xuatExcel(true)">📊 Excel + dữ liệu</button>'
+          +'<label class="btn-sm gr" style="cursor:pointer">📤 Upload Excel'
+          +'<input type="file" id="inp-upload" accept=".xlsx,.xls" style="display:none" onchange="APP.uploadExcel(this)">'
+          +'</label>';
+      }
+      const _btnGui='<button id="btn-gui" class="btn-sm send'+(tatCaKhoa?' done':'')+'" onclick="APP.guiBaoCao()" '+(tatCaKhoa?'disabled':'')+'>'+( tatCaKhoa?'✅ Đã gửi':'📨 Gửi báo cáo')+'</button>';
+      const _btnLuu='<button id="btn-luu-top" class="btn-sm" style="background:#c5d0c9;color:#3d5247;cursor:default" onclick="APP.luuDuLieu()">💾 Lưu</button>';
+      _ta.innerHTML=_btnExcel+_btnLuu+_btnGui;
+    }
 
     UTILS.el('content').innerHTML=`
-      <div class="nl-bar">
-        <span style="font-size:13px;font-weight:700;color:var(--xd)">📋 ${b?.ten_bang}</span>
-        <span style="font-size:11px;color:var(--g4)">${b?.don_vi_bao_cao||''}</span>
-        <div class="sp"></div>
-        ${this.dsKy.map(k=>`<span class="ky-tag ${k.khoa_nhap_lieu?'khoa':'mo'}">${k.khoa_nhap_lieu?'🔒':'🔓'} T${k.thang_bao_cao}/${k.nam_bao_cao}</span>`).join('')}
-        ${coGSheet?'':`<button class="btn-sm gr" onclick="APP.xuatExcel(false)">📥 Excel mẫu trống</button>
-          <button class="btn-sm gr" onclick="APP.xuatExcel(true)">📊 Excel + dữ liệu</button>
-          <label class="btn-sm gr" style="cursor:pointer">
-            📤 Upload Excel
-            <input type="file" id="inp-upload" accept=".xlsx,.xls" style="display:none" onchange="APP.uploadExcel(this)">
-          </label>`}
-        <button id="btn-gui" class="btn-sm send${tatCaKhoa?' done':''}"
-          onclick="APP.guiBaoCao()"
-          ${tatCaKhoa?'disabled':''}>
-          ${tatCaKhoa?'✅ Đã gửi':'📨 Gửi báo cáo'}
-        </button>
-      </div>
+
       <div class="tieu-de-bang${coGSheet?' hidden':''}">
         <div class="d1">${b?.tieu_de_chinh||b?.ten_bang?.toUpperCase()||''}</div>
         <div class="d2">${b?.tieu_de_phu||'(Đính kèm Công văn số …. của ….)'}</div>
@@ -537,7 +638,7 @@ const APP={
       const w=k.do_rong_cot||120;
       th+=`<th class="${k.khoa_nhap_lieu?'th-kh':'th-mo'}" style="min-width:${w}px;width:${w}px" data-ky="${k.ky_bao_cao}" title="${k.ky_bao_cao}">
         <div style="display:flex;flex-direction:column;align-items:center;gap:2px;padding-right:4px">
-          <span style="font-size:10px;opacity:.8">${k.khoa_nhap_lieu?'🔒':'🔓'}</span>
+          ${k.khoa_nhap_lieu?'<span style="font-size:12px;line-height:1;opacity:.85">🔒</span>':''}
           <span>${k.ky_bao_cao_tieu_de||('T'+k.thang_bao_cao+'/'+k.nam_bao_cao)}</span>
         </div>
         <div class="resize-handle" onmousedown="APP.startResize(event,'${k.ky_bao_cao}')"></div>
@@ -568,7 +669,7 @@ const APP={
             type="text" ${isText?'':'inputmode="decimal"'}
             class="os${hasV?' has':''}${isLocked?' locked':''}"
             data-key="${key}" data-id="${c.id}" data-ky="${k.ky_bao_cao}"
-            value="${hasV?v:''}"
+            value="${hasV?(c.kieu_du_lieu==='text'?v:UTILS.formatSo(v)):''}"
             ${isLocked?'disabled':''}
             style="text-align:${isText?'left':'right'}"
             onchange="APP.ghiNhan(this)"
@@ -588,9 +689,19 @@ const APP={
     document.querySelectorAll('table.t tbody tr.tr-focused').forEach(r=>r.classList.remove('tr-focused'));
     const tr=el.closest('tr');
     if(tr)tr.classList.add('tr-focused');
+    // Khi focus ô số: chuyển về số thô để dễ nhập
+    if(el.classList.contains('os')&&el.inputMode==='decimal'){
+      const raw=UTILS.parseSo(el.value);
+      el.value=raw!==null?String(raw):'';
+      setTimeout(()=>el.select(),0);
+    }
   },
   clearFocusRow(el){
-    // Dùng setTimeout để tránh xóa quá sớm khi nhảy sang ô khác trong cùng hàng
+    // Format số khi rời ô
+    if(el.classList.contains('os')&&el.inputMode==='decimal'){
+      const raw=UTILS.parseSo(el.value);
+      el.value=raw!==null?UTILS.formatSo(raw):'';
+    }
     setTimeout(()=>{
       if(!document.activeElement?.closest('tr.tr-focused'))
         document.querySelectorAll('table.t tbody tr.tr-focused').forEach(r=>r.classList.remove('tr-focused'));
@@ -602,6 +713,7 @@ const APP={
     this.changes[`${loai||'so'}|${key}`]=el.value;
     UTILS.el('cnt').textContent=Object.keys(this.changes).length;
     UTILS.bat('sbar');
+    const _bl=UTILS.el('btn-luu-top');if(_bl){_bl.style.background='#2d6a4f';_bl.style.color='#fff';_bl.style.cursor='pointer';}
   },
 
   handlePaste(e,el){
@@ -656,7 +768,7 @@ const APP={
     }
   },
 
-  huyThayDoi(){this.changes={};UTILS.tat('sbar');if(this.bangHT)this.moNhap(this.bangHT)},
+  huyThayDoi(){this.changes={};UTILS.tat('sbar');const _bl2=UTILS.el('btn-luu-top');if(_bl2){_bl2.style.background='#c5d0c9';_bl2.style.color='#3d5247';_bl2.style.cursor='default';}if(this.bangHT)this.moNhap(this.bangHT)},
 
   _resizing:null,
   startResize(e,maKy){
@@ -697,14 +809,18 @@ const APP={
       const loai=parts[0],id=parts[1],ky=parts.slice(2).join('|');
       const rk=`${id}|${ky}`;
       if(!rows[rk])rows[rk]={id_chi_tieu:id,ky_bao_cao:ky,nguoi_nhap:this.user._nguoi_nhap||this.user.email||this.user.don_vi,thoi_gian_nhap:new Date().toISOString()};
-      if(loai==='so')rows[rk].gia_tri=UTILS.parseSo(v);
+      if(loai==='so'){
+        // v==='' nghĩa là người dùng xóa trắng → lưu null để xóa số cũ
+        // v!=='' → parse bình thường, nếu không phải số hợp lệ thì cũng lưu null
+        rows[rk].gia_tri = (v===''||v===null||v===undefined) ? null : UTILS.parseSo(v);
+      }
       if(loai==='gc')rows[rk].ghi_chu=v;
       if(loai==='ng')rows[rk].nguon_so_lieu=v;
     }
     try{
       await DB.luuDuLieu(this.bangHT,Object.values(rows));
       UTILS.toast(`✅ Đã lưu ${Object.values(rows).length} dòng!`,'ok');
-      this.changes={};UTILS.tat('sbar');
+      this.changes={};UTILS.tat('sbar');const _bl3=UTILS.el('btn-luu-top');if(_bl3){_bl3.style.background='#c5d0c9';_bl3.style.color='#3d5247';_bl3.style.cursor='default';}
       document.querySelectorAll('.os').forEach(i=>i.classList.toggle('has',i.value!==''));
     }catch(e){UTILS.toast('❌ Lỗi: '+e.message,'er');console.error('luuDuLieu:',e)}
     nut.textContent='💾 Lưu';nut.disabled=false;
@@ -861,10 +977,17 @@ const APP={
   },
 
   toggleSidebar(){
-    document.querySelector('.sb').classList.toggle('open');
+    UTILS.el('sb')?.classList.toggle('open');
+    UTILS.el('sb-overlay')?.classList.toggle('on');
+  },
+  closeSidebar(){
+    UTILS.el('sb')?.classList.remove('open');
+    UTILS.el('sb-overlay')?.classList.remove('on');
   },
 
   moAdmin(){window.open('admin.html','_blank')},
+
+  moXemBaoCao(){window.location.href='xembaocao.html'},
 };
 window.addEventListener('load',()=>APP.init());
 </script>

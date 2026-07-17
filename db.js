@@ -194,6 +194,33 @@ const DB = {
     if (error) throw error;
   },
 
+  // ── GOOGLE SHEET (danh_sach_gsheet) ────────────────────
+  // Lưu ý: dùng biến `sb` cục bộ (bản cũ gọi DB.sb — không tồn tại — nên luôn lỗi)
+  async layGSheet(chiHienThi = true) {
+    if (!CONFIG.BANG.GSHEET) return [];
+    let q = sb.from(CONFIG.BANG.GSHEET).select('*')
+      .order('thu_tu', { ascending: true });
+    if (chiHienThi) q = q.eq('hien_thi', true);
+    const { data, error } = await q;
+    if (error) throw error;
+    return data || [];
+  },
+
+  async themGSheet(row) {
+    const { error } = await sb.from(CONFIG.BANG.GSHEET).insert(row);
+    if (error) throw error;
+  },
+
+  async suaGSheet(id, row) {
+    const { error } = await sb.from(CONFIG.BANG.GSHEET).update(row).eq('id', id);
+    if (error) throw error;
+  },
+
+  async xoaGSheet(id) {
+    const { error } = await sb.from(CONFIG.BANG.GSHEET).delete().eq('id', id);
+    if (error) throw error;
+  },
+
   // ── PHÂN QUYỀN ─────────────────────────────────────────
   async layPhanQuyen(taiKhoanId) {
     const { data, error } = await sb

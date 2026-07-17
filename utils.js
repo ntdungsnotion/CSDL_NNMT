@@ -40,19 +40,81 @@ const UTILS = {
   },
 
   // ── SỐ LIỆU ─────────────────────────────────────────────
-  // Làm sạch chuỗi số: chấp nhận cả dấu phẩy và dấu chấm thập phân
+  // Làm sạch chuỗi số — xử lý an toàn cả hai hệ (VN và quốc tế):
+  //   "10.000"   → 10000  (chấm là phân cách hàng nghìn VN)
+  //   "10.5"     → 10.5   (chấm là thập phân kiểu quốc tế)
+  //   "10.000,5" → 10000.5
+  //   "10,5"     → 10.5   (phẩy là thập phân VN)
+  //   "10,000.5" → 10000.5 (định dạng Anh/Mỹ)
   parseSo(str) {
     if (str === '' || str === null || str === undefined) return null;
-    // Thay dấu phẩy thành dấu chấm (người VN hay nhập 1.000,5)
-    const s = String(str).replace(/\./g, '').replace(',', '.');
-    const n = parseFloat(s);
+    const s = String(str).trim();
+    if (s === '') return null;
+
+    const hasDot   = s.includes('.');
+    const hasComma = s.includes(',');
+
+    let normalized;
+    if (hasDot && hasComma) {
+      // Cả hai dấu → xác định thứ tự: dấu nào xuất hiện SAU là thập phân
+      const lastDot   = s.lastIndexOf('.');
+      const lastComma = s.lastIndexOf(',');
+      if (lastComma > lastDot) {
+        // Kiểu VN: 10.000,50 → bỏ chấm, đổi phẩy thành chấm
+        normalized = s.replace(/\./g, '').replace(',', '.');
+      } else {
+        // Kiểu Anh/Mỹ: 10,000.50 → bỏ phẩy
+        normalized = s.replace(/,/g, '');
+      }
+    } else if (hasComma && !hasDot) {
+      // Chỉ có phẩy
+      const parts = s.split(',');
+      if (parts.length === 2 && parts[1].length <= 2) {
+        // "10,5" hoặc "10,50" → thập phân VN
+        normalized = s.replace(',', '.');
+      } else {
+        // "10,000" → phân cách hàng nghìn → bỏ phẩy
+        normalized = s.replace(/,/g, '');
+      }
+    } else if (hasDot && !hasComma) {
+      // Chỉ có chấm
+      const parts = s.split('.');
+      const lastPart = parts[parts.length - 1];
+      if (parts.length === 2 && lastPart.length !== 3) {
+        // "10.5" hoặc "10.50" → thập phân quốc tế
+        normalized = s;
+      } else {
+        // "10.000" hoặc "1.000.000" → phân cách hàng nghìn VN → bỏ chấm
+        normalized = s.replace(/\./g, '');
+      }
+    } else {
+      // Không có dấu gì
+      normalized = s;
+    }
+
+    const n = parseFloat(normalized);
     return isNaN(n) ? null : n;
   },
 
-  // Format số hiển thị
+  // Format số hiển thị chuẩn vi-VN:
+  //   10000     → "10.000"
+  //   10000.4   → "10.000,4"
+  //   10000.45  → "10.000,45"
+  //   10000.456 → "10.000,46" (làm tròn 2 thập phân)
+  //   Không có thập phân → không hiện phần thập phân
   formatSo(n) {
     if (n === null || n === undefined || n === '') return '';
-    return Number(n).toLocaleString('vi-VN');
+    const num = Number(n);
+    if (isNaN(num)) return String(n);
+    // Xác định số chữ số thập phân thực tế (tối đa 2)
+    const decimals = Math.min(
+      (String(Math.round(num * 100) / 100).split('.')[1] || '').length,
+      2
+    );
+    return num.toLocaleString('vi-VN', {
+      minimumFractionDigits: decimals,
+      maximumFractionDigits: decimals,
+    });
   },
 
   // ── INDENT ──────────────────────────────────────────────
